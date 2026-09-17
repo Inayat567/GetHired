@@ -56,7 +56,7 @@ export default function CreatorPage() {
               className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs sm:text-sm font-bold px-4 sm:px-5 py-2.5 rounded-xl shadow-lg shadow-indigo-600/30 transition transform"
             >
               <i className="fa-solid fa-bolt"></i>
-              <span>Launch Workspace</span>
+              <span>Go to Copilot</span>
             </Link>
           </div>
         </div>
@@ -71,10 +71,12 @@ export default function CreatorPage() {
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 sm:gap-8">
             <div className="relative flex-shrink-0">
-              <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl bg-gradient-to-br from-indigo-500 via-purple-600 to-emerald-500 p-1 shadow-2xl">
-                <div className="w-full h-full rounded-[22px] bg-slate-950 flex items-center justify-center text-4xl sm:text-5xl font-black text-white">
-                  IA
-                </div>
+              <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl bg-gradient-to-br from-indigo-500 via-purple-600 to-emerald-500 p-1 shadow-2xl overflow-hidden">
+                <img
+                  src="/Inayat.png"
+                  alt="Inayat Ali"
+                  className="w-full h-full rounded-[22px] object-cover bg-slate-950"
+                />
               </div>
               <div className="absolute -bottom-2 -right-1 bg-emerald-500 text-slate-950 text-[11px] font-black px-2 py-0.5 rounded-md border-2 border-slate-900 flex items-center space-x-1 shadow-lg">
                 <i className="fa-solid fa-check text-[10px]"></i>

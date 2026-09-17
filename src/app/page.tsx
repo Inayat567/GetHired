@@ -1,7 +1,32 @@
-import React from 'react';
+'use client';
+
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import LoginModal from '@/components/LoginModal';
 
 export default function HomePage() {
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.authenticated && data.user) {
+          setUser(data.user);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleStart = () => {
+    if (user) {
+      window.location.href = '/dashboard';
+    } else {
+      setIsLoginModalOpen(true);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white relative overflow-x-hidden">
       {/* Top Ambient Glow */}
@@ -46,13 +71,13 @@ export default function HomePage() {
               <span>Meet Creator</span>
             </Link>
 
-            <Link
-              href="/dashboard"
-              className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs sm:text-sm font-bold px-4 sm:px-5 py-2.5 rounded-xl shadow-lg shadow-indigo-600/30 transition transform"
+            <button
+              onClick={handleStart}
+              className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs sm:text-sm font-bold px-4 sm:px-5 py-2.5 rounded-xl shadow-lg shadow-indigo-600/30 transition transform cursor-pointer"
             >
               <i className="fa-solid fa-bolt"></i>
-              <span>Launch App</span>
-            </Link>
+              <span>{user ? 'Open Dashboard' : 'Get Started Free'}</span>
+            </button>
           </div>
         </div>
       </header>
@@ -77,14 +102,14 @@ export default function HomePage() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2">
-            <Link
-              href="/dashboard"
-              className="w-full sm:w-auto flex items-center justify-center space-x-2.5 bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-base px-8 py-4 rounded-2xl shadow-xl shadow-indigo-600/30 transition transform active:scale-95"
+            <button
+              onClick={handleStart}
+              className="w-full sm:w-auto flex items-center justify-center space-x-2.5 bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-base px-8 py-4 rounded-2xl shadow-xl shadow-indigo-600/30 transition transform active:scale-95 cursor-pointer"
             >
-              <i className="fa-solid fa-bolt"></i>
-              <span>Open GetHired Workspace</span>
+              <i className="fa-solid fa-sparkles"></i>
+              <span>{user ? 'Open Your Dashboard' : 'Start Job Hunting — Free'}</span>
               <i className="fa-solid fa-arrow-right text-xs ml-1"></i>
-            </Link>
+            </button>
 
             <a
               href="https://github.com/Inayat567/GetHired"
@@ -335,10 +360,12 @@ export default function HomePage() {
         <section className="p-8 sm:p-10 rounded-3xl bg-gradient-to-r from-slate-900 via-slate-900/95 to-slate-900 border border-slate-800 shadow-2xl relative overflow-hidden">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
             <div className="flex items-center space-x-4">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-emerald-500 p-0.5 shadow-lg flex-shrink-0">
-                <div className="w-full h-full rounded-xl bg-slate-950 flex items-center justify-center text-xl font-black text-white">
-                  IA
-                </div>
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-emerald-500 p-0.5 shadow-lg flex-shrink-0 overflow-hidden">
+                <img
+                  src="/Inayat.png"
+                  alt="Inayat Ali"
+                  className="w-full h-full rounded-[14px] object-cover bg-slate-950"
+                />
               </div>
               <div className="space-y-1">
                 <div className="flex items-center space-x-2">
@@ -369,7 +396,7 @@ export default function HomePage() {
 
       </main>
 
-      {/* Footer (No Coffee Links) */}
+      {/* Footer */}
       <footer className="border-t border-slate-800 bg-slate-950 py-12 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
           <div className="flex items-center space-x-3">
@@ -394,12 +421,25 @@ export default function HomePage() {
               GitHub Repo
             </a>
             <span>•</span>
-            <Link href="/dashboard" className="text-indigo-400 hover:underline">
-              Launch Workspace
-            </Link>
+            <button
+              onClick={handleStart}
+              className="text-indigo-400 hover:underline cursor-pointer"
+            >
+              {user ? 'Open Dashboard' : 'Start Job Hunting'}
+            </button>
           </div>
         </div>
       </footer>
+
+      {/* Auth Login Modal on Home Page */}
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onSuccess={() => {
+          setIsLoginModalOpen(false);
+          window.location.href = '/dashboard';
+        }}
+      />
     </div>
   );
 }
