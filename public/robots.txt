@@ -1,0 +1,61 @@
+# ==============================================================================
+# GetHired - Robots Exclusion & AI Web Agent Policy
+# Domain: gethired.innunext.com
+# ==============================================================================
+
+# Search Engines (Google, Bing, DuckDuckGo, Yahoo, Baidu, Yandex)
+User-agent: *
+Allow: /
+Allow: /index.html
+Allow: /logo.svg
+Disallow: /api/
+Disallow: /profiles/
+
+# OpenAI / ChatGPT
+User-agent: GPTBot
+Allow: /
+Disallow: /api/
+Disallow: /profiles/
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /api/
+Disallow: /profiles/
+
+# Google Gemini & Search AI Overviews
+User-agent: Google-Extended
+Allow: /
+Disallow: /api/
+Disallow: /profiles/
+
+# Anthropic Claude & Claude Web Search
+User-agent: ClaudeBot
+Allow: /
+Disallow: /api/
+Disallow: /profiles/
+
+User-agent: Claude-Web
+Allow: /
+Disallow: /api/
+Disallow: /profiles/
+
+# Perplexity AI Search Engine
+User-agent: PerplexityBot
+Allow: /
+Disallow: /api/
+Disallow: /profiles/
+
+# Apple Intelligence
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /api/
+Disallow: /profiles/
+
+# Common Crawl (Used by Grok / xAI & open-source LLMs)
+User-agent: CCBot
+Allow: /
+Disallow: /api/
+Disallow: /profiles/
+
+# Sitemap Location
+Sitemap: https://gethired.innunext.com/sitemap.xml

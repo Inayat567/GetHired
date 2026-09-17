@@ -48,11 +48,14 @@ export function verifySessionToken(token: string): { userId: string; email: stri
   }
 }
 
-export function getSessionFromCookie(req: http.IncomingMessage): { userId: string; email: string } | null {
-  const cookieHeader = req.headers.cookie;
+export function getSessionFromCookie(req: any): { userId: string; email: string } | null {
+  const cookieHeader =
+    req?.headers?.cookie ||
+    (typeof req?.headers?.get === 'function' ? req.headers.get('cookie') : '') ||
+    '';
   if (!cookieHeader) return null;
 
-  const cookies = cookieHeader.split(';').reduce((acc: Record<string, string>, c) => {
+  const cookies = cookieHeader.split(';').reduce((acc: Record<string, string>, c: string) => {
     const [k, v] = c.trim().split('=');
     if (k && v) acc[k] = decodeURIComponent(v);
     return acc;

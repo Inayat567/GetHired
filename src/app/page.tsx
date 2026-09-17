@@ -1,12 +1,7 @@
-'use client';
-
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import CreatorModal from '@/components/CreatorModal';
 
 export default function HomePage() {
-  const [isCreatorModalOpen, setIsCreatorModalOpen] = useState(false);
-
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white relative overflow-x-hidden">
       {/* Top Ambient Glow */}
@@ -43,13 +38,13 @@ export default function HomePage() {
               <span>Star on GitHub</span>
             </a>
 
-            <button
-              onClick={() => setIsCreatorModalOpen(true)}
+            <Link
+              href="/creator"
               className="hidden sm:flex items-center space-x-2 text-xs font-semibold text-emerald-400 hover:text-emerald-300 px-3.5 py-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 transition"
             >
               <i className="fa-solid fa-user-astronaut text-xs"></i>
               <span>Meet Creator</span>
-            </button>
+            </Link>
 
             <Link
               href="/dashboard"
@@ -360,14 +355,14 @@ export default function HomePage() {
             </div>
 
             <div className="flex items-center space-x-3 w-full sm:w-auto flex-shrink-0">
-              <button
-                onClick={() => setIsCreatorModalOpen(true)}
+              <Link
+                href="/creator"
                 className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs sm:text-sm px-5 py-3 rounded-xl shadow-lg shadow-emerald-600/30 transition transform"
               >
                 <i className="fa-solid fa-user-astronaut"></i>
                 <span>Meet the Creator</span>
                 <i className="fa-solid fa-arrow-right text-xs ml-1"></i>
-              </button>
+              </Link>
             </div>
           </div>
         </section>
@@ -383,12 +378,12 @@ export default function HomePage() {
           </div>
 
           <div className="flex items-center space-x-4">
-            <button
-              onClick={() => setIsCreatorModalOpen(true)}
+            <Link
+              href="/creator"
               className="hover:text-emerald-400 transition flex items-center space-x-1 font-medium"
             >
               <span>✦ Meet the Creator</span>
-            </button>
+            </Link>
             <span>•</span>
             <a
               href="https://github.com/Inayat567/GetHired"
@@ -405,12 +400,6 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
-
-      {/* Interactive Creator Modal */}
-      <CreatorModal
-        isOpen={isCreatorModalOpen}
-        onClose={() => setIsCreatorModalOpen(false)}
-      />
     </div>
   );
 }

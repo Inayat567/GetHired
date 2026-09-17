@@ -2,11 +2,12 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import LoginModal from '@/components/LoginModal';
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'triage' | 'settings' | 'preferences' | 'profile'>('triage');
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
 
   useEffect(() => {
     // Check session
@@ -45,10 +46,18 @@ export default function DashboardPage() {
           {/* Right Header Actions */}
           <div className="flex items-center space-x-3 sm:space-x-4">
             <Link
+              href="/creator"
+              className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 transition hidden sm:flex items-center space-x-1"
+            >
+              <i className="fa-solid fa-user-astronaut text-xs"></i>
+              <span>Meet Creator</span>
+            </Link>
+
+            <Link
               href="/"
               className="text-xs text-slate-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-slate-800 transition hidden sm:inline-block"
             >
-              ← Back to Home
+              ← Home
             </Link>
 
             {user ? (
@@ -59,7 +68,7 @@ export default function DashboardPage() {
                 </div>
                 <button
                   onClick={() => {
-                    fetch('/api/auth/logout', { method: 'POST' }).then(() => (window.location.href = '/'));
+                    fetch('/api/auth/logout', { method: 'POST' }).then(() => (window.location.href = '/dashboard'));
                   }}
                   title="Sign Out"
                   className="text-slate-400 hover:text-rose-400 text-xs px-2 py-1.5 rounded-lg hover:bg-slate-800 transition"
@@ -69,8 +78,8 @@ export default function DashboardPage() {
               </div>
             ) : (
               <button
-                onClick={() => (window.location.href = '/api/auth/github')}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg shadow-sm transition"
+                onClick={() => setLoginModalOpen(true)}
+                className="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg shadow-sm transition"
               >
                 Sign In
               </button>
@@ -82,7 +91,7 @@ export default function DashboardPage() {
       {/* Embed the interactive engine */}
       <main className="flex-1 w-full">
         <iframe
-          src="/index.html"
+          src="/workspace.html"
           className="w-full h-full min-h-[calc(100vh-64px)] border-0"
           title="GetHired Workspace"
         />
@@ -91,31 +100,39 @@ export default function DashboardPage() {
       {/* Creator Freelance Banner in Dashboard Footer */}
       <footer className="bg-slate-900 text-slate-300 py-4 px-4 border-t border-slate-800 text-xs flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="flex items-center space-x-2 text-slate-400">
-          <span>GetHired Copilot by <strong>Inayat Ali</strong></span>
+          <span>GetHired Copilot by <Link href="/creator" className="text-white hover:text-emerald-400 font-bold underline decoration-slate-600">Inayat Ali</Link></span>
           <span>•</span>
           <span className="text-slate-500">Autonomous Job Discovery & Outreach</span>
         </div>
 
         <div className="flex items-center space-x-3">
-          <span className="text-slate-400 hidden md:inline">Need a custom AI or mobile app?</span>
+          <Link href="/creator" className="text-emerald-400 hover:underline">
+            Meet the Creator
+          </Link>
+          <span>•</span>
           <a
             href="https://www.upwork.com/freelancers/~01f9a28f1fe989e240"
             target="_blank"
             rel="noopener noreferrer"
             className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1 rounded-lg transition"
           >
-            Hire Creator on Upwork ($25/hr)
-          </a>
-          <a
-            href="https://innunext.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-indigo-400 hover:underline"
-          >
-            Portfolio
+            Hire on Upwork ($25/hr)
           </a>
         </div>
       </footer>
+
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={loginModalOpen}
+        onClose={() => setLoginModalOpen(false)}
+        onSuccess={(u) => {
+          setUser(u);
+          setLoginModalOpen(false);
+          // Reload iframe to refresh session state inside workspace
+          const iframe = document.querySelector('iframe');
+          if (iframe) iframe.src = '/workspace.html';
+        }}
+      />
     </div>
   );
 }

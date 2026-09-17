@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%">
+  <defs>
+    <!-- Background rounded gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0B0F19" />
+      <stop offset="100%" stop-color="#171C2E" />
+    </linearGradient>
+
+    <!-- Professional Tech Indigo-Violet Gradient -->
+    <linearGradient id="primaryBrand" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1" />
+      <stop offset="100%" stop-color="#4F46E5" />
+    </linearGradient>
+
+    <!-- Verified Success Emerald Gradient -->
+    <linearGradient id="successGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34D399" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+
+    <!-- AI Scan Beam Glow Gradient -->
+    <linearGradient id="aiCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="100%" stop-color="#0284C7" />
+    </linearGradient>
+
+    <!-- Subtle Drop Shadow -->
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#4F46E5" flood-opacity="0.3" />
+    </filter>
+  </defs>
+
+  <!-- Squircle Canvas Background -->
+  <rect x="8" y="8" width="104" height="104" rx="28" fill="url(#bgGrad)" stroke="#1F293D" stroke-width="2" />
+
+  <!-- Briefcase Top Handle (Negative space / sleek curve) -->
+  <path d="M 46 36 C 46 29, 74 29, 74 36" 
+        fill="none" 
+        stroke="url(#primaryBrand)" 
+        stroke-width="5" 
+        stroke-linecap="round" />
+
+  <!-- Briefcase Main Body Shell -->
+  <rect x="25" y="38" width="70" height="54" rx="14" 
+        fill="none" 
+        stroke="url(#primaryBrand)" 
+        stroke-width="5.5" 
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        filter="url(#softGlow)" />
+
+  <!-- Briefcase Divider Belt / Scan Horizon -->
+  <path d="M 26 59 L 45 59 M 75 59 L 94 59" 
+        stroke="#2E384D" 
+        stroke-width="3" 
+        stroke-linecap="round" />
+
+  <!-- AI Radar Target Aperture Rings (Center Lock) -->
+  <circle cx="60" cy="62" r="16" fill="#0B0F19" stroke="url(#aiCyan)" stroke-width="2.5" stroke-dasharray="3.5 2.5" />
+  <circle cx="60" cy="62" r="11" fill="none" stroke="#1E293B" stroke-width="1.5" />
+
+  <!-- Verified 'Get Hired' Checkmark Node (Career Match Locked In) -->
+  <path d="M 53 62 L 58 67 L 69 56" 
+        fill="none" 
+        stroke="url(#successGrad)" 
+        stroke-width="4.5" 
+        stroke-linecap="round" 
+        stroke-linejoin="round" />
+
+  <!-- Top Right Opportunity Pulse / Spark (AI Finding Real-time Jobs) -->
+  <circle cx="86" cy="30" r="4.5" fill="#10B981" />
+  <circle cx="86" cy="30" r="8" fill="none" stroke="#10B981" stroke-width="1.5" opacity="0.4" />
+</svg>
