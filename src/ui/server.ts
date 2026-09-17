@@ -298,6 +298,43 @@ export async function startServer() {
         return sendJson(res, 200, { success: ok, message: 'LinkedIn disconnected.' });
       }
 
+      // Static SEO & Branding Assets
+      if (pathname === '/robots.txt') {
+        const filePath = path.resolve(__dirname, 'public', 'robots.txt');
+        if (fs.existsSync(filePath)) {
+          res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+          fs.createReadStream(filePath).pipe(res);
+          return;
+        }
+      }
+
+      if (pathname === '/sitemap.xml') {
+        const filePath = path.resolve(__dirname, 'public', 'sitemap.xml');
+        if (fs.existsSync(filePath)) {
+          res.writeHead(200, { 'Content-Type': 'application/xml; charset=utf-8' });
+          fs.createReadStream(filePath).pipe(res);
+          return;
+        }
+      }
+
+      if (pathname === '/logo.svg' || pathname === '/favicon.ico' || pathname === '/favicon.svg') {
+        const filePath = path.resolve(__dirname, 'public', 'logo.svg');
+        if (fs.existsSync(filePath)) {
+          res.writeHead(200, { 'Content-Type': 'image/svg+xml; charset=utf-8', 'Cache-Control': 'public, max-age=86400' });
+          fs.createReadStream(filePath).pipe(res);
+          return;
+        }
+      }
+
+      if (pathname === '/site.webmanifest') {
+        const filePath = path.resolve(__dirname, 'public', 'site.webmanifest');
+        if (fs.existsSync(filePath)) {
+          res.writeHead(200, { 'Content-Type': 'application/manifest+json; charset=utf-8' });
+          fs.createReadStream(filePath).pipe(res);
+          return;
+        }
+      }
+
       // Static UI Homepage
       if (pathname === '/' || pathname === '/index.html') {
         const htmlPath = path.resolve(__dirname, 'public', 'index.html');
