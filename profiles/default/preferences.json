@@ -1,0 +1,53 @@
+{
+  "employment_types": [
+    "full-time",
+    "part-time"
+  ],
+  "compensation": {
+    "currency": "USD",
+    "min_monthly_amount": 2500,
+    "min_hourly_rate": 25,
+    "strict_salary_filter": false
+  },
+  "location": {
+    "candidate_country": "Pakistan",
+    "allow_worldwide_remote": true,
+    "target_countries": [
+      "Belgium",
+      "Netherlands",
+      "Germany",
+      "Austria",
+      "Bulgaria",
+      "United Kingdom",
+      "Canada",
+      "Australia"
+    ],
+    "disallowed_phrases": [
+      "US Citizen or Green Card required",
+      "US Citizen only",
+      "Must be physically located in the US",
+      "W2 Only",
+      "No C2C",
+      "Requires Security Clearance"
+    ]
+  },
+  "timezone": {
+    "candidate_utc_offset": 5,
+    "max_timezone_difference_hours": 7,
+    "acceptable_timezones": [
+      "UTC",
+      "CET",
+      "Worldwide"
+    ]
+  },
+  "target_roles": [
+    "React Native Engineer",
+    "Mobile Developer"
+  ],
+  "required_keywords": [
+    "React Native",
+    "Expo"
+  ],
+  "excluded_keywords": [],
+  "match_threshold": 75
+}

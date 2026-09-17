@@ -1,0 +1,21 @@
+{
+  "name": "Jane Doe",
+  "email": "janedoe@example.com",
+  "portfolio": "https://example.com",
+  "github": "https://github.com/example",
+  "current_title": "Senior Software Engineer",
+  "years_of_experience": 5,
+  "core_stack": [
+    "TypeScript",
+    "React Native",
+    "Node.js"
+  ],
+  "secondary_stack": [
+    "GraphQL",
+    "Docker"
+  ],
+  "notable_achievements": [
+    "Architected and shipped scalable production applications with 99.9% uptime.",
+    "Led engineering teams to optimize performance and core conversion metrics."
+  ]
+}

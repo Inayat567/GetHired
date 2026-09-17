@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+dist/
+
+# Environment and Secrets
+.env
+.env.local
+
+# Databases & Cache
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+jobs.db
+
+# Playwright & Browser Sessions
+linkedin-session/
+playwright-report/
+test-results/
+
+# User assets and personal profiles (keep personal CV and credentials private)
+assets/cv.pdf
+profiles/
+!profiles/default/
+!profiles/default/preferences.json
+!profiles/default/candidate_profile.json
+!profiles/default/settings.json
+
+# Logs & OS
+*.log
+.DS_Store
+.vscode/
+.idea/

@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GetHired 🚀 Autonomous Job Discovery Copilot</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .pulse-border {
+      animation: pulse-border 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulse-border {
+      0%, 100% { border-color: rgba(99, 102, 241, 0.4); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.2); }
+      50% { border-color: rgba(99, 102, 241, 0.9); box-shadow: 0 0 0 8px rgba(99, 102, 241, 0.1); }
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col text-slate-800 antialiased">
+
+  <!-- Top Navigation Header -->
+  <header class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-30 shadow-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <!-- Logo -->
+      <div class="flex items-center space-x-3">
+        <span class="text-2xl">🚀</span>
+        <div>
+          <span class="font-bold text-lg tracking-tight text-white">GetHired</span>
+          <span class="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded ml-2 border border-indigo-500/30">Copilot</span>
+        </div>
+      </div>
+
+      <!-- Right Header Actions -->
+      <div class="flex items-center space-x-3 sm:space-x-4">
+        <!-- Active User Profile Dropdown -->
+        <div class="flex items-center space-x-2 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">
+          <i class="fa-solid fa-user-astronaut text-indigo-400 text-xs"></i>
+          <span class="text-xs text-slate-400 font-medium hidden sm:inline">Profile:</span>
+          <select id="profileSelect" onchange="switchProfile(this.value)" class="bg-transparent text-sm text-white font-medium focus:outline-none cursor-pointer">
+            <option value="default">default</option>
+          </select>
+          <button onclick="promptNewProfile()" title="Create New Bot / User Persona" class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded ml-1 transition">
+            <i class="fa-solid fa-plus"></i> <span class="hidden sm:inline">New</span>
+          </button>
+        </div>
+
+        <!-- Quick AI Badge -->
+        <div id="headerAiBadge" onclick="switchTab('settings')" class="hidden md:flex items-center space-x-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 cursor-pointer transition">
+          <i class="fa-solid fa-brain text-emerald-400"></i>
+          <span id="headerAiText">OpenAI (gpt-4o-mini)</span>
+        </div>
+
+        <!-- LinkedIn Status Badge -->
+        <div id="headerLinkedInBadge" onclick="switchTab('settings')" class="hidden sm:flex items-center space-x-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 cursor-pointer transition">
+          <i class="fa-brands fa-linkedin text-slate-400" id="headerLinkedInIcon"></i>
+          <span id="headerLinkedInText">LinkedIn: Checking...</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Secondary Bar: Navigation Tabs & Real-time Stats -->
+  <div class="bg-white border-b border-slate-200 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row md:items-center justify-between py-2.5 gap-3">
+      <!-- Tabs Navigation -->
+      <nav class="flex space-x-1 sm:space-x-2 overflow-x-auto pb-1 md:pb-0">
+        <button onclick="switchTab('triage')" id="tabBtn-triage" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold bg-indigo-50 text-indigo-700 flex items-center space-x-2">
+          <i class="fa-solid fa-list-check"></i>
+          <span>Job Triage</span>
+        </button>
+        <button onclick="switchTab('settings')" id="tabBtn-settings" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center space-x-2">
+          <i class="fa-solid fa-microchip"></i>
+          <span>AI & SMTP Keys</span>
+        </button>
+        <button onclick="switchTab('preferences')" id="tabBtn-preferences" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center space-x-2">
+          <i class="fa-solid fa-sliders"></i>
+          <span>Preferences & Filters</span>
+        </button>
+        <button onclick="switchTab('profile')" id="tabBtn-profile" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center space-x-2">
+          <i class="fa-solid fa-address-card"></i>
+          <span>Candidate Profile & CV</span>
+        </button>
+      </nav>
+
+      <!-- Stats Pill Bar -->
+      <div id="statsBar" class="flex items-center space-x-2 text-xs text-slate-500 overflow-x-auto pb-1 md:pb-0">
+        <span class="bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 whitespace-nowrap">Total: <strong id="statTotal" class="text-slate-800 font-bold">0</strong></span>
+        <span class="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md border border-emerald-200 whitespace-nowrap">Qualified: <strong id="statQualified" class="font-bold">0</strong></span>
+        <span class="bg-amber-50 text-amber-700 px-2.5 py-1 rounded-md border border-amber-200 whitespace-nowrap">Pending: <strong id="statPending" class="font-bold">0</strong></span>
+        <span class="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md border border-blue-200 whitespace-nowrap">Applied: <strong id="statApplied" class="font-bold">0</strong></span>
+        <span class="bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 whitespace-nowrap">Skipped: <strong id="statSkipped" class="font-bold">0</strong></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- =================================================================== -->
+    <!-- TAB 1: JOB TRIAGE & DISCOVERY                                      -->
+    <!-- =================================================================== -->
+    <div id="tab-triage" class="tab-content block">
+
+      <!-- Action Discovery Banner -->
+      <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-6 mb-6 text-white shadow-lg border border-indigo-900/50 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="bg-indigo-500/30 text-indigo-300 text-xs px-2.5 py-0.5 rounded-full font-semibold border border-indigo-400/30">Autonomous Scanner</span>
+            <span id="activeAiLabel" class="text-xs text-slate-300">Using OpenAI (gpt-4o-mini)</span>
+          </div>
+          <h2 class="text-xl font-bold mt-1 text-white">Find & Evaluate High-Signal Remote Roles</h2>
+          <p class="text-xs text-slate-300 mt-0.5">Scrapes ATS endpoints, remote boards & LinkedIn, applies your regional preferences, and drafts cold pitch emails.</p>
+        </div>
+
+        <button onclick="triggerDiscovery()" id="searchDiscoverBtn" class="w-full md:w-auto flex items-center justify-center space-x-2 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold px-6 py-3.5 rounded-xl shadow-lg shadow-indigo-600/30 transition transform">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <span>Search & Evaluate Jobs Now</span>
+        </button>
+      </div>
+
+      <!-- Loading State Overlay / Card -->
+      <div id="loadingOverlay" class="hidden mb-6 bg-white rounded-2xl p-8 border-2 border-indigo-400 pulse-border text-center shadow-lg">
+        <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-indigo-50 text-indigo-600 mb-3">
+          <i class="fa-solid fa-spinner fa-spin text-2xl"></i>
+        </div>
+        <h3 class="text-lg font-bold text-slate-900" id="loadingTitle">Scraping Remote Feeds & Evaluating Technical Fit...</h3>
+        <p class="text-xs text-slate-500 max-w-md mx-auto mt-1" id="loadingSubtitle">
+          Fetching from Greenhouse, Lever, RemoteOK, Jobicy, WeWorkRemotely, and LinkedIn. Generating cold pitches with your selected AI model.
+        </p>
+        <div class="mt-4 flex items-center justify-center space-x-2 text-xs text-indigo-600 font-medium">
+          <span class="inline-block w-2 h-2 rounded-full bg-indigo-600 animate-ping"></span>
+          <span>Please wait, this takes approximately 10-25 seconds...</span>
+        </div>
+      </div>
+
+      <!-- Status Filter Tabs & Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        <div class="flex items-center space-x-2">
+          <h3 class="text-lg font-bold text-slate-900">Job Opportunities</h3>
+          <span id="jobCountBadge" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700">0</span>
+        </div>
+
+        <div class="flex space-x-1.5 bg-slate-100 p-1 rounded-lg border border-slate-200">
+          <button onclick="filterJobs('qualified')" class="status-filter px-3 py-1 text-xs font-semibold rounded-md bg-white text-indigo-600 shadow-sm" data-status="qualified">Qualified</button>
+          <button onclick="filterJobs('pending')" class="status-filter px-3 py-1 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900" data-status="pending">Pending</button>
+          <button onclick="filterJobs('applied')" class="status-filter px-3 py-1 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900" data-status="applied">Applied</button>
+          <button onclick="filterJobs('skipped')" class="status-filter px-3 py-1 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900" data-status="skipped">Skipped</button>
+        </div>
+      </div>
+
+      <!-- Jobs List Container -->
+      <div id="jobsList" class="space-y-4">
+        <div class="text-center py-16 bg-white rounded-2xl border border-slate-200 shadow-sm">
+          <i class="fa-solid fa-spinner fa-spin text-3xl text-indigo-600 mb-3"></i>
+          <p class="text-slate-500 font-medium text-sm">Loading jobs...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- TAB 2: AI PROVIDER & SMTP KEYS SETTINGS                            -->
+    <!-- =================================================================== -->
+    <div id="tab-settings" class="tab-content hidden">
+      <div class="max-w-4xl mx-auto space-y-6">
+
+        <!-- LinkedIn Session Card -->
+        <div class="bg-white p-6 sm:p-7 rounded-2xl border border-slate-200 shadow-sm">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-start sm:items-center space-x-3.5">
+              <div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl flex-shrink-0">
+                <i class="fa-brands fa-linkedin"></i>
+              </div>
+              <div>
+                <div class="flex items-center space-x-2">
+                  <h3 class="text-base font-bold text-slate-900">LinkedIn Session Context</h3>
+                  <span id="linkedInStatusBadge" class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-slate-100 text-slate-500 border border-slate-200">Checking...</span>
+                </div>
+                <p class="text-xs text-slate-500 mt-0.5">Scrapes informal "We are hiring React Native developers, email me at..." posts and extracts recruiter direct emails without bans.</p>
+              </div>
+            </div>
+
+            <div class="flex items-center space-x-2 flex-shrink-0">
+              <button type="button" onclick="connectLinkedIn()" id="connectLinkedInBtn" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition flex items-center space-x-2">
+                <i class="fa-brands fa-linkedin"></i>
+                <span id="connectLinkedInBtnText">Connect LinkedIn</span>
+              </button>
+              <button type="button" onclick="disconnectLinkedIn()" id="disconnectLinkedInBtn" class="hidden text-slate-400 hover:text-rose-600 text-xs px-3 py-2.5 rounded-xl hover:bg-slate-100 transition" title="Disconnect Session">
+                <i class="fa-solid fa-link-slash"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Connecting Status Banner -->
+          <div id="linkedInConnectingNotice" class="hidden mt-4 p-3.5 bg-blue-50 rounded-xl border border-blue-200 text-xs text-blue-900 flex items-center space-x-3">
+            <i class="fa-solid fa-spinner fa-spin text-lg text-blue-600 flex-shrink-0"></i>
+            <div>
+              <p class="font-bold">Opening browser for LinkedIn login...</p>
+              <p class="text-[11px] text-blue-700 mt-0.5">Log into your LinkedIn account in the opened Chrome window. As soon as you log in, GetHired will automatically capture your session cookies and close the window!</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Provider Card -->
+        <div class="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-lg font-bold text-slate-900">AI Model & Reasoning Provider</h3>
+              <p class="text-xs text-slate-500 mt-0.5">Select your preferred AI provider to score roles and generate tailored email pitches.</p>
+            </div>
+            <span class="text-2xl">🤖</span>
+          </div>
+
+          <form id="aiSettingsForm" onsubmit="saveAiAndSmtpSettings(event)" class="space-y-6">
+
+            <!-- Provider Selection Cards -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2.5">Select Provider</label>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <!-- OpenAI -->
+                <label class="ai-provider-card flex flex-col p-3.5 rounded-xl border-2 cursor-pointer transition border-slate-200 hover:border-slate-300 bg-slate-50" data-provider="openai">
+                  <input type="radio" name="ai_provider" value="openai" class="hidden" onchange="onAiProviderChanged(this.value)" checked>
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="font-bold text-sm text-slate-900">OpenAI</span>
+                    <i class="fa-solid fa-check-circle text-indigo-600 opacity-0 check-icon"></i>
+                  </div>
+                  <span class="text-xs text-slate-500">GPT-4o Mini, GPT-4o</span>
+                </label>
+
+                <!-- Anthropic Claude -->
+                <label class="ai-provider-card flex flex-col p-3.5 rounded-xl border-2 cursor-pointer transition border-slate-200 hover:border-slate-300 bg-slate-50" data-provider="claude">
+                  <input type="radio" name="ai_provider" value="claude" class="hidden" onchange="onAiProviderChanged(this.value)">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="font-bold text-sm text-slate-900">Claude</span>
+                    <i class="fa-solid fa-check-circle text-indigo-600 opacity-0 check-icon"></i>
+                  </div>
+                  <span class="text-xs text-slate-500">Sonnet 3.5, Haiku 3.5</span>
+                </label>
+
+                <!-- Google Gemini -->
+                <label class="ai-provider-card flex flex-col p-3.5 rounded-xl border-2 cursor-pointer transition border-slate-200 hover:border-slate-300 bg-slate-50" data-provider="gemini">
+                  <input type="radio" name="ai_provider" value="gemini" class="hidden" onchange="onAiProviderChanged(this.value)">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="font-bold text-sm text-slate-900">Gemini</span>
+                    <i class="fa-solid fa-check-circle text-indigo-600 opacity-0 check-icon"></i>
+                  </div>
+                  <span class="text-xs text-slate-500">Gemini 2.0 Flash, 1.5 Pro</span>
+                </label>
+
+                <!-- xAI Grok -->
+                <label class="ai-provider-card flex flex-col p-3.5 rounded-xl border-2 cursor-pointer transition border-slate-200 hover:border-slate-300 bg-slate-50" data-provider="grok">
+                  <input type="radio" name="ai_provider" value="grok" class="hidden" onchange="onAiProviderChanged(this.value)">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="font-bold text-sm text-slate-900">Grok (xAI)</span>
+                    <i class="fa-solid fa-check-circle text-indigo-600 opacity-0 check-icon"></i>
+                  </div>
+                  <span class="text-xs text-slate-500">Grok 2 Latest</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Model Selection & API Key -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Available Models</label>
+                <select id="setting_ai_model" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white">
+                  <!-- Dynamically populated -->
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">
+                  <span id="apiKeyLabel">OpenAI API Key</span>
+                </label>
+                <div class="relative">
+                  <input type="password" id="setting_api_key" placeholder="sk-..." class="w-full text-sm px-3.5 py-2.5 pr-10 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                  <button type="button" onclick="togglePasswordVisibility('setting_api_key')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
+                    <i class="fa-solid fa-eye text-xs"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Outbound Email (SMTP) Configuration -->
+            <div class="border-t border-slate-200 pt-6">
+              <div class="flex items-center justify-between mb-3">
+                <div>
+                  <h4 class="text-base font-bold text-slate-900">Outbound Email (SMTP) Credentials</h4>
+                  <p class="text-xs text-slate-500">Used to dispatch 1-click cold email applications with your CV attached directly from your email account.</p>
+                </div>
+                <button type="button" onclick="testSmtp()" id="testSmtpBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-300 transition flex items-center space-x-1.5">
+                  <i class="fa-solid fa-envelope-circle-check"></i>
+                  <span>Test Connection</span>
+                </button>
+              </div>
+
+              <div id="smtpResult" class="mb-4 text-xs hidden"></div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">SMTP Host</label>
+                  <input type="text" id="smtp_host" placeholder="smtp.gmail.com" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">SMTP Port</label>
+                  <input type="number" id="smtp_port" placeholder="587" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Sender From Name</label>
+                  <input type="text" id="smtp_from_name" placeholder="Affan Developer" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">SMTP Username / Email</label>
+                  <input type="email" id="smtp_user" placeholder="your_email@gmail.com" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Password / App Password</label>
+                  <div class="relative">
+                    <input type="password" id="smtp_pass" placeholder="16-character app password" class="w-full text-sm px-3.5 py-2.5 pr-10 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                    <button type="button" onclick="togglePasswordVisibility('smtp_pass')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
+                      <i class="fa-solid fa-eye text-xs"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Collapsible Live Test Email Drawer -->
+              <div class="mt-4 border-t border-slate-100 pt-4">
+                <button type="button" onclick="toggleTestEmailDrawer()" class="flex items-center justify-between w-full text-left py-2.5 px-3.5 bg-slate-50 hover:bg-indigo-50/50 rounded-xl border border-slate-200 transition group cursor-pointer">
+                  <span class="text-xs font-bold text-slate-800 group-hover:text-indigo-600 flex items-center space-x-2">
+                    <i class="fa-solid fa-paper-plane text-indigo-500"></i>
+                    <span>Send Real Test Email to Any Inbox</span>
+                    <span class="text-[11px] text-slate-400 font-normal hidden sm:inline">(Verify actual live deliverability to your or a friend's inbox)</span>
+                  </span>
+                  <i id="testEmailChevron" class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200"></i>
+                </button>
+
+                <div id="testEmailDrawer" class="hidden mt-3 p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-700 mb-1">Recipient Email Address</label>
+                      <input type="email" id="live_test_recipient" placeholder="e.g. your_other_email@gmail.com or friend@example.com" class="w-full text-xs px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-700 mb-1">Subject</label>
+                      <input type="text" id="live_test_subject" value="[GetHired Test] Live Outbound Email Verification" class="w-full text-xs px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Message Content</label>
+                    <textarea id="live_test_body" rows="2" class="w-full text-xs px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white">Hello! This is a live test email dispatched from your GetHired Job Copilot. If you received this, your SMTP settings and attachments are working perfectly!</textarea>
+                  </div>
+
+                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
+                    <label class="flex items-center space-x-2 text-xs text-slate-700 cursor-pointer">
+                      <input type="checkbox" id="live_test_attach_cv" checked class="rounded text-indigo-600">
+                      <span>Attach my CV.pdf to test attachment delivery</span>
+                    </label>
+
+                    <button type="button" onclick="sendLiveTestEmailFromUI()" id="sendLiveTestBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-4 py-2 rounded-lg shadow-sm transition flex items-center space-x-1.5 justify-center">
+                      <i class="fa-solid fa-paper-plane"></i>
+                      <span>Send Live Test Email</span>
+                    </button>
+                  </div>
+
+                  <div id="liveTestResult" class="hidden text-xs p-3 rounded-lg"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="flex justify-end pt-3">
+              <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-6 py-2.5 rounded-xl shadow-sm transition">
+                <i class="fa-solid fa-floppy-disk mr-1.5"></i> Save AI & Email Settings
+              </button>
+            </div>
+          </form>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- TAB 3: PREFERENCES & DETERMINISTIC FILTERS                          -->
+    <!-- =================================================================== -->
+    <div id="tab-preferences" class="tab-content hidden">
+      <div class="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm max-w-4xl mx-auto">
+        <h3 class="font-bold text-slate-900 text-lg mb-1">Target Preferences & Regional Filters</h3>
+        <p class="text-xs text-slate-500 mb-6">Jobs not matching these deterministic criteria are discarded before invoking any LLM, saving you API costs.</p>
+
+        <form id="preferencesForm" onsubmit="savePreferencesForm(event)" class="space-y-6">
+
+          <!-- Target Countries -->
+          <div>
+            <label class="block text-sm font-bold text-slate-900 mb-2">Target Countries & Remote Reach</label>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+              <label class="flex items-center space-x-2 text-xs text-slate-700 p-2.5 bg-slate-50 rounded-xl border border-slate-200 hover:bg-slate-100 cursor-pointer">
+                <input type="checkbox" name="target_countries" value="Belgium" class="rounded text-indigo-600"> <span>🇧🇪 Belgium</span>
+              </label>
+              <label class="flex items-center space-x-2 text-xs text-slate-700 p-2.5 bg-slate-50 rounded-xl border border-slate-200 hover:bg-slate-100 cursor-pointer">
+                <input type="checkbox" name="target_countries" value="Netherlands" class="rounded text-indigo-600"> <span>🇳🇱 Netherlands</span>
+              </label>
+              <label class="flex items-center space-x-2 text-xs text-slate-700 p-2.5 bg-slate-50 rounded-xl border border-slate-200 hover:bg-slate-100 cursor-pointer">
+                <input type="checkbox" name="target_countries" value="Germany" class="rounded text-indigo-600"> <span>🇩🇪 Germany</span>
+              </label>
+              <label class="flex items-center space-x-2 text-xs text-slate-700 p-2.5 bg-slate-50 rounded-xl border border-slate-200 hover:bg-slate-100 cursor-pointer">
+                <input type="checkbox" name="target_countries" value="Austria" class="rounded text-indigo-600"> <span>🇦🇹 Austria</span>
+              </label>
+              <label class="flex items-center space-x-2 text-xs text-slate-700 p-2.5 bg-slate-50 rounded-xl border border-slate-200 hover:bg-slate-100 cursor-pointer">
+                <input type="checkbox" name="target_countries" value="Bulgaria" class="rounded text-indigo-600"> <span>🇧🇬 Bulgaria</span>
+              </label>
+              <label class="flex items-center space-x-2 text-xs text-slate-700 p-2.5 bg-slate-50 rounded-xl border border-slate-200 hover:bg-slate-100 cursor-pointer">
+                <input type="checkbox" name="target_countries" value="United Kingdom" class="rounded text-indigo-600"> <span>🇬🇧 United Kingdom</span>
+              </label>
+              <label class="flex items-center space-x-2 text-xs text-slate-700 p-2.5 bg-slate-50 rounded-xl border border-slate-200 hover:bg-slate-100 cursor-pointer">
+                <input type="checkbox" name="target_countries" value="Canada" class="rounded text-indigo-600"> <span>🇨🇦 Canada</span>
+              </label>
+              <label class="flex items-center space-x-2 text-xs text-slate-700 p-2.5 bg-slate-50 rounded-xl border border-slate-200 hover:bg-slate-100 cursor-pointer">
+                <input type="checkbox" name="target_countries" value="Australia" class="rounded text-indigo-600"> <span>🇦🇺 Australia</span>
+              </label>
+              <label class="flex items-center space-x-2 text-xs text-slate-700 p-2.5 bg-slate-50 rounded-xl border border-slate-200 hover:bg-slate-100 cursor-pointer">
+                <input type="checkbox" name="target_countries" value="European Union" class="rounded text-indigo-600"> <span>🇪🇺 European Union</span>
+              </label>
+              <label class="flex items-center space-x-2 text-xs text-slate-700 p-2.5 bg-slate-50 rounded-xl border border-slate-200 hover:bg-slate-100 cursor-pointer">
+                <input type="checkbox" name="target_countries" value="Worldwide" class="rounded text-indigo-600"> <span>🌍 Worldwide</span>
+              </label>
+            </div>
+            <div class="mt-3">
+              <label class="inline-flex items-center space-x-2 text-xs text-slate-600 font-medium cursor-pointer">
+                <input type="checkbox" id="pref_allow_worldwide" class="rounded text-indigo-600">
+                <span>Allow any role tagged "Worldwide Remote" or "Work from Anywhere"</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Employment Types -->
+          <div class="border-t border-slate-200 pt-4">
+            <label class="block text-sm font-bold text-slate-900 mb-2">Employment Types</label>
+            <div class="flex flex-wrap gap-4">
+              <label class="flex items-center space-x-2 text-xs text-slate-700">
+                <input type="checkbox" name="employment_types" value="full-time" class="rounded text-indigo-600"> <span>Full-Time</span>
+              </label>
+              <label class="flex items-center space-x-2 text-xs text-slate-700">
+                <input type="checkbox" name="employment_types" value="contract" class="rounded text-indigo-600"> <span>Contract / B2B</span>
+              </label>
+              <label class="flex items-center space-x-2 text-xs text-slate-700">
+                <input type="checkbox" name="employment_types" value="part-time" class="rounded text-indigo-600"> <span>Part-Time</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Compensation -->
+          <div class="border-t border-slate-200 pt-4">
+            <label class="block text-sm font-bold text-slate-900 mb-2">Compensation & Rate Boundaries</label>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Currency</label>
+                <select id="pref_currency" class="w-full text-sm px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                  <option value="USD">USD ($)</option>
+                  <option value="EUR">EUR (€)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Min. Monthly Salary</label>
+                <input type="number" id="pref_min_month" class="w-full text-sm px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="e.g. 4000" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Min. Hourly Rate</label>
+                <input type="number" id="pref_min_hour" class="w-full text-sm px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="e.g. 35" />
+              </div>
+            </div>
+            <div class="mt-3">
+              <label class="inline-flex items-center space-x-2 text-xs text-slate-600 font-medium cursor-pointer">
+                <input type="checkbox" id="pref_strict_salary" class="rounded text-indigo-600">
+                <span>Strict Salary Filter (discard jobs explicitly stating lower pay; keeps undisclosed listings)</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Keywords & Match Threshold -->
+          <div class="border-t border-slate-200 pt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Mandatory Keywords (comma separated)</label>
+              <input type="text" id="pref_required_keywords" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="React Native, Expo" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Match Score Threshold (0 - 100%)</label>
+              <input type="number" id="pref_match_threshold" min="50" max="95" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="75" />
+            </div>
+          </div>
+
+          <div class="flex justify-end pt-3">
+            <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-6 py-2.5 rounded-xl shadow-sm transition">
+              <i class="fa-solid fa-check mr-1.5"></i> Save Preferences
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- TAB 4: CANDIDATE PROFILE & CV                                      -->
+    <!-- =================================================================== -->
+    <div id="tab-profile" class="tab-content hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Left: CV Upload Box -->
+        <div class="bg-white p-6 sm:p-7 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+          <h3 class="font-bold text-slate-900 text-base mb-1">Resume / CV Asset</h3>
+          <p class="text-xs text-slate-500 mb-4">Upload your PDF resume. It will be attached when you 1-click dispatch cold emails.</p>
+
+          <div id="dropZone" class="flex-1 border-2 border-dashed border-slate-300 hover:border-indigo-500 rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50 hover:bg-indigo-50/30 min-h-[180px]">
+            <i class="fa-solid fa-file-pdf text-4xl text-rose-500 mb-2"></i>
+            <span class="text-sm font-bold text-slate-800">Drop your resume PDF here</span>
+            <span class="text-xs text-slate-400 mt-1">or click to browse from your device</span>
+            <input type="file" id="cvFileInput" accept="application/pdf" class="hidden" onchange="handleFileUpload(this.files)" />
+          </div>
+
+          <div id="cvStatus" class="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs flex items-center justify-between">
+            <span class="text-slate-600">Status: <strong id="cvStatusText" class="text-slate-800">Checking...</strong></span>
+            <span id="cvSizeText" class="text-slate-400 font-mono"></span>
+          </div>
+        </div>
+
+        <!-- Right: Profile Form -->
+        <div class="lg:col-span-2 bg-white p-6 sm:p-7 rounded-2xl border border-slate-200 shadow-sm">
+          <h3 class="font-bold text-slate-900 text-base mb-1">Candidate Profile</h3>
+          <p class="text-xs text-slate-500 mb-5">The AI reads this master profile to customize pitches with your exact real-world project accomplishments.</p>
+
+          <form id="profileForm" onsubmit="saveProfileForm(event)" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Full Name</label>
+                <input type="text" id="prof_name" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Email Address</label>
+                <input type="email" id="prof_email" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Professional Title</label>
+                <input type="text" id="prof_title" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Years of Experience</label>
+                <input type="number" id="prof_exp" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Portfolio Website</label>
+                <input type="url" id="prof_portfolio" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">GitHub Profile</label>
+                <input type="url" id="prof_github" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Core Tech Stack (comma separated)</label>
+              <input type="text" id="prof_core_stack" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Notable Achievements & Metric Highlights (1 per line)</label>
+              <textarea id="prof_achievements" rows="4" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
+            </div>
+
+            <div class="flex justify-end pt-2">
+              <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-6 py-2.5 rounded-xl shadow-sm transition">
+                <i class="fa-solid fa-save mr-1.5"></i> Save Profile
+              </button>
+            </div>
+          </form>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Floating Toast Notification -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition duration-300 flex items-center space-x-2.5 bg-slate-900 text-white text-sm px-5 py-3.5 rounded-xl shadow-2xl border border-slate-800">
+    <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+    <span id="toastMsg" class="font-medium">Action completed successfully.</span>
+  </div>
+
+  <script>
+    let activeProfile = 'default';
+    let currentStatusFilter = 'qualified';
+    let aiModelsCatalog = {};
+
+    async function init() {
+      setupDropZone();
+      await loadAiModels();
+      await loadProfileList();
+      await loadProfileData(activeProfile);
+      await loadJobs(currentStatusFilter);
+      await loadStats();
+      await checkLinkedInStatus();
+    }
+
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      const toastIcon = document.getElementById('toastIcon');
+
+      toastMsg.innerText = msg;
+      toastIcon.className = isError ? 'fa-solid fa-circle-exclamation text-rose-400 text-base' : 'fa-solid fa-circle-check text-emerald-400 text-base';
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3500);
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.getElementById('tab-' + tabId).classList.remove('hidden');
+
+      document.querySelectorAll('.tab-btn').forEach(el => {
+        el.classList.remove('bg-indigo-50', 'text-indigo-700');
+        el.classList.add('text-slate-600', 'hover:text-slate-900', 'hover:bg-slate-100');
+      });
+      const activeBtn = document.getElementById('tabBtn-' + tabId);
+      activeBtn.classList.add('bg-indigo-50', 'text-indigo-700');
+      activeBtn.classList.remove('text-slate-600', 'hover:text-slate-900', 'hover:bg-slate-100');
+    }
+
+    async function loadAiModels() {
+      try {
+        const res = await fetch('/api/ai-models');
+        const data = await res.json();
+        aiModelsCatalog = data.models || {};
+      } catch (err) {
+        console.error('Error fetching AI models:', err);
+      }
+    }
+
+    function onAiProviderChanged(provider, selectedModel = null) {
+      // Update radio cards visual style
+      document.querySelectorAll('.ai-provider-card').forEach(card => {
+        const isCurrent = card.dataset.provider === provider;
+        const radio = card.querySelector('input[type="radio"]');
+        const check = card.querySelector('.check-icon');
+
+        if (isCurrent) {
+          card.classList.add('border-indigo-600', 'bg-indigo-50/50');
+          card.classList.remove('border-slate-200', 'bg-slate-50');
+          radio.checked = true;
+          check.classList.remove('opacity-0');
+        } else {
+          card.classList.remove('border-indigo-600', 'bg-indigo-50/50');
+          card.classList.add('border-slate-200', 'bg-slate-50');
+          radio.checked = false;
+          check.classList.add('opacity-0');
+        }
+      });
+
+      // Update API Key input label placeholder
+      const keyLabel = document.getElementById('apiKeyLabel');
+      const keyInput = document.getElementById('setting_api_key');
+      const labels = {
+        openai: 'OpenAI API Key (sk-...)',
+        claude: 'Anthropic Claude API Key (sk-ant-...)',
+        gemini: 'Google Gemini API Key (AIza...)',
+        grok: 'xAI Grok API Key (xai-...)',
+      };
+      keyLabel.textContent = labels[provider] || 'API Key';
+
+      // Populate Model dropdown
+      const modelSelect = document.getElementById('setting_ai_model');
+      modelSelect.innerHTML = '';
+      const models = aiModelsCatalog[provider] || [];
+
+      models.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = m.name;
+        if (selectedModel && selectedModel === m.id) opt.selected = true;
+        modelSelect.appendChild(opt);
+      });
+
+      // Update header & banner AI badges
+      updateAiBadge(provider, selectedModel || (models[0] ? models[0].id : ''));
+    }
+
+    function updateAiBadge(provider, model) {
+      const names = { openai: 'OpenAI', claude: 'Claude', gemini: 'Gemini', grok: 'Grok' };
+      const display = `${names[provider] || provider} (${model})`;
+      document.getElementById('headerAiText').textContent = display;
+      document.getElementById('activeAiLabel').textContent = `Using ${display}`;
+    }
+
+    function togglePasswordVisibility(inputId) {
+      const input = document.getElementById(inputId);
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    async function loadProfileList() {
+      try {
+        const res = await fetch('/api/profiles');
+        const data = await res.json();
+        const select = document.getElementById('profileSelect');
+        select.innerHTML = '';
+        data.profiles.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p;
+          opt.textContent = p;
+          if (p === activeProfile) opt.selected = true;
+          select.appendChild(opt);
+        });
+      } catch (err) {
+        console.error('Error loading profiles:', err);
+      }
+    }
+
+    async function promptNewProfile() {
+      const name = prompt('Enter a new user / bot profile ID (e.g., "alex_contract"):');
+      if (!name) return;
+      try {
+        const res = await fetch('/api/profiles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`Profile "${data.profile.id}" created!`);
+          activeProfile = data.profile.id;
+          await loadProfileList();
+          await loadProfileData(activeProfile);
+        } else {
+          showToast(data.error || 'Failed to create profile', true);
+        }
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    async function switchProfile(profileId) {
+      activeProfile = profileId;
+      showToast(`Switched to profile: ${profileId}`);
+      await loadProfileData(profileId);
+      await loadJobs(currentStatusFilter);
+    }
+
+    async function loadProfileData(profileId) {
+      try {
+        const res = await fetch(`/api/profile?id=${encodeURIComponent(profileId)}`);
+        const bundle = await res.json();
+
+        // 1. Candidate Profile
+        const p = bundle.candidateProfile;
+        document.getElementById('prof_name').value = p.name || '';
+        document.getElementById('prof_email').value = p.email || '';
+        document.getElementById('prof_title').value = p.current_title || '';
+        document.getElementById('prof_exp').value = p.years_of_experience || 0;
+        document.getElementById('prof_portfolio').value = p.portfolio || '';
+        document.getElementById('prof_github').value = p.github || '';
+        document.getElementById('prof_core_stack').value = (p.core_stack || []).join(', ');
+        document.getElementById('prof_achievements').value = (p.notable_achievements || []).join('\n');
+
+        // 2. CV Status
+        const cvText = document.getElementById('cvStatusText');
+        const cvSize = document.getElementById('cvSizeText');
+        if (bundle.cvExists) {
+          cvText.innerHTML = '<span class="text-emerald-600 font-bold">cv.pdf ready</span>';
+          cvSize.textContent = `${(bundle.cvSizeBytes / 1024).toFixed(1)} KB`;
+        } else {
+          cvText.innerHTML = '<span class="text-amber-600 font-semibold">No CV uploaded yet</span>';
+          cvSize.textContent = '';
+        }
+
+        // 3. AI & SMTP Settings
+        const s = bundle.settings || {};
+        const provider = s.ai_provider || 'openai';
+        onAiProviderChanged(provider, s.ai_model);
+
+        document.getElementById('setting_api_key').value = s.api_key || '';
+        if (s.smtp) {
+          document.getElementById('smtp_host').value = s.smtp.host || 'smtp.gmail.com';
+          document.getElementById('smtp_port').value = s.smtp.port || 587;
+          document.getElementById('smtp_from_name').value = s.smtp.from_name || p.name || '';
+          document.getElementById('smtp_user').value = s.smtp.user || '';
+          document.getElementById('smtp_pass').value = s.smtp.pass || '';
+        }
+
+        // 4. Preferences
+        const pref = bundle.preferences;
+        document.querySelectorAll('input[name="target_countries"]').forEach(cb => {
+          cb.checked = (pref.location.target_countries || []).includes(cb.value);
+        });
+        document.getElementById('pref_allow_worldwide').checked = !!pref.location.allow_worldwide_remote;
+
+        document.querySelectorAll('input[name="employment_types"]').forEach(cb => {
+          cb.checked = (pref.employment_types || []).includes(cb.value);
+        });
+
+        document.getElementById('pref_currency').value = pref.compensation.currency || 'USD';
+        document.getElementById('pref_min_month').value = pref.compensation.min_monthly_amount || 4000;
+        document.getElementById('pref_min_hour').value = pref.compensation.min_hourly_rate || 30;
+        document.getElementById('pref_strict_salary').checked = !!pref.compensation.strict_salary_filter;
+
+        document.getElementById('pref_required_keywords').value = (pref.required_keywords || []).join(', ');
+        document.getElementById('pref_match_threshold').value = pref.match_threshold || 75;
+
+      } catch (err) {
+        console.error('Error loading profile bundle:', err);
+      }
+    }
+
+    async function saveAiAndSmtpSettings(e) {
+      e.preventDefault();
+      const providerRadio = document.querySelector('input[name="ai_provider"]:checked');
+      const ai_provider = providerRadio ? providerRadio.value : 'openai';
+      const ai_model = document.getElementById('setting_ai_model').value;
+      const api_key = document.getElementById('setting_api_key').value.trim();
+
+      const smtp = {
+        host: document.getElementById('smtp_host').value.trim() || 'smtp.gmail.com',
+        port: parseInt(document.getElementById('smtp_port').value, 10) || 587,
+        secure: false,
+        user: document.getElementById('smtp_user').value.trim(),
+        pass: document.getElementById('smtp_pass').value.trim(),
+        from_name: document.getElementById('smtp_from_name').value.trim(),
+      };
+
+      const payload = { ai_provider, ai_model, api_key, smtp };
+
+      try {
+        const res = await fetch(`/api/settings?id=${encodeURIComponent(activeProfile)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('AI Provider & SMTP credentials saved!');
+          updateAiBadge(ai_provider, ai_model);
+        } else {
+          showToast(data.error || 'Failed to save settings', true);
+        }
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    async function saveProfileForm(e) {
+      e.preventDefault();
+      const payload = {
+        name: document.getElementById('prof_name').value.trim(),
+        email: document.getElementById('prof_email').value.trim(),
+        current_title: document.getElementById('prof_title').value.trim(),
+        years_of_experience: parseInt(document.getElementById('prof_exp').value, 10) || 0,
+        portfolio: document.getElementById('prof_portfolio').value.trim(),
+        github: document.getElementById('prof_github').value.trim(),
+        core_stack: document.getElementById('prof_core_stack').value.split(',').map(s => s.trim()).filter(Boolean),
+        secondary_stack: [],
+        notable_achievements: document.getElementById('prof_achievements').value.split('\n').map(s => s.trim()).filter(Boolean),
+      };
+
+      try {
+        const res = await fetch(`/api/profile?id=${encodeURIComponent(activeProfile)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Candidate profile updated!');
+        } else {
+          showToast(data.error || 'Failed to save profile', true);
+        }
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    async function savePreferencesForm(e) {
+      e.preventDefault();
+      const target_countries = Array.from(document.querySelectorAll('input[name="target_countries"]:checked')).map(cb => cb.value);
+      const employment_types = Array.from(document.querySelectorAll('input[name="employment_types"]:checked')).map(cb => cb.value);
+
+      const payload = {
+        employment_types,
+        compensation: {
+          currency: document.getElementById('pref_currency').value,
+          min_monthly_amount: parseFloat(document.getElementById('pref_min_month').value) || 0,
+          min_hourly_rate: parseFloat(document.getElementById('pref_min_hour').value) || 0,
+          strict_salary_filter: document.getElementById('pref_strict_salary').checked,
+        },
+        location: {
+          candidate_country: "Pakistan",
+          allow_worldwide_remote: document.getElementById('pref_allow_worldwide').checked,
+          target_countries,
+          disallowed_phrases: [
+            "US Citizen or Green Card required",
+            "US Citizen only",
+            "Must be physically located in the US",
+            "W2 Only",
+            "No C2C",
+            "Requires Security Clearance"
+          ],
+        },
+        timezone: {
+          candidate_utc_offset: 5,
+          max_timezone_difference_hours: 7,
+          acceptable_timezones: ["UTC", "CET", "Worldwide"]
+        },
+        target_roles: ["React Native Engineer", "Mobile Developer"],
+        required_keywords: document.getElementById('pref_required_keywords').value.split(',').map(s => s.trim()).filter(Boolean),
+        match_threshold: parseInt(document.getElementById('pref_match_threshold').value, 10) || 75,
+      };
+
+      try {
+        const res = await fetch(`/api/preferences?id=${encodeURIComponent(activeProfile)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Target preferences & regional filters saved!');
+        } else {
+          showToast(data.error || 'Failed to save preferences', true);
+        }
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    function setupDropZone() {
+      const dropZone = document.getElementById('dropZone');
+      const fileInput = document.getElementById('cvFileInput');
+
+      dropZone.addEventListener('click', () => fileInput.click());
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('border-indigo-500', 'bg-indigo-50');
+      });
+      dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('border-indigo-500', 'bg-indigo-50');
+      });
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('border-indigo-500', 'bg-indigo-50');
+        if (e.dataTransfer.files.length) {
+          handleFileUpload(e.dataTransfer.files);
+        }
+      });
+    }
+
+    async function handleFileUpload(files) {
+      if (!files || !files[0]) return;
+      const file = files[0];
+      if (file.type !== 'application/pdf') {
+        showToast('Please upload a valid PDF file.', true);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const base64 = e.target.result;
+        try {
+          const res = await fetch(`/api/cv/upload?id=${encodeURIComponent(activeProfile)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ base64, filename: file.name }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            showToast('CV uploaded and ready!');
+            await loadProfileData(activeProfile);
+          } else {
+            showToast(data.error || 'Upload failed', true);
+          }
+        } catch (err) {
+          showToast(err.message, true);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/stats');
+        const s = await res.json();
+        document.getElementById('statTotal').innerText = s.total || 0;
+        document.getElementById('statQualified').innerText = s.qualified || 0;
+        document.getElementById('statPending').innerText = s.pending || 0;
+        document.getElementById('statApplied').innerText = s.applied || 0;
+        document.getElementById('statSkipped').innerText = s.skipped || 0;
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function filterJobs(status) {
+      currentStatusFilter = status;
+      document.querySelectorAll('.status-filter').forEach(btn => {
+        if (btn.dataset.status === status) {
+          btn.className = 'status-filter px-3 py-1 text-xs font-semibold rounded-md bg-white text-indigo-600 shadow-sm';
+        } else {
+          btn.className = 'status-filter px-3 py-1 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900';
+        }
+      });
+      await loadJobs(status);
+    }
+
+    async function loadJobs(status) {
+      const container = document.getElementById('jobsList');
+      container.innerHTML = `
+        <div class="text-center py-16 bg-white rounded-2xl border border-slate-200 shadow-sm">
+          <i class="fa-solid fa-spinner fa-spin text-2xl text-indigo-600 mb-2"></i>
+          <p class="text-slate-500 text-sm font-medium">Fetching ${status} jobs...</p>
+        </div>
+      `;
+
+      try {
+        const res = await fetch(`/api/jobs?status=${encodeURIComponent(status)}`);
+        const data = await res.json();
+        const jobs = data.jobs || [];
+
+        document.getElementById('jobCountBadge').innerText = jobs.length;
+
+        if (jobs.length === 0) {
+          const emptySubtitle = status === 'skipped'
+            ? 'Jobs you manually skip during triage will appear here for your records.'
+            : 'Click "Search & Evaluate Jobs Now" to run discovery and qualify fresh opportunities.';
+          container.innerHTML = `
+            <div class="text-center py-16 bg-white rounded-2xl border border-slate-200 shadow-sm">
+              <i class="fa-solid fa-briefcase text-4xl text-slate-300 mb-3"></i>
+              <p class="text-slate-700 font-bold text-base">No ${status} jobs right now</p>
+              <p class="text-slate-400 text-xs mt-1 max-w-sm mx-auto">${emptySubtitle}</p>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = jobs.map(j => {
+          const score = j.match_score || 0;
+          const badgeColor = score >= 85 ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-amber-100 text-amber-800 border-amber-300';
+          
+          let skillsHtml = '';
+          if (j.key_matching_skills) {
+            const skills = typeof j.key_matching_skills === 'string' ? JSON.parse(j.key_matching_skills) : j.key_matching_skills;
+            skillsHtml = skills.map(s => `<span class="bg-indigo-50 text-indigo-700 text-xs px-2.5 py-0.5 rounded-md font-semibold border border-indigo-100">${s}</span>`).join(' ');
+          }
+
+          return `
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:border-indigo-300 transition">
+              <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                <div>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h4 class="font-bold text-slate-900 text-base">${j.company}</h4>
+                    <span class="text-xs px-2.5 py-0.5 rounded-full border ${badgeColor} font-bold">${score}% Match</span>
+                    <span class="text-xs text-slate-400">via ${j.source}</span>
+                  </div>
+                  <div class="text-sm font-bold text-indigo-600 mt-1">${j.title}</div>
+                  <div class="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-2">
+                    <span><i class="fa-solid fa-location-dot mr-1"></i>${j.location_raw || 'Remote'}</span>
+                    <span><i class="fa-solid fa-clock mr-1"></i>${j.employment_type || 'Unspecified'}</span>
+                    <span><i class="fa-solid fa-money-bill-wave mr-1"></i>${j.salary_min ? (j.currency || '$') + j.salary_min.toLocaleString() : 'Undisclosed'}</span>
+                    ${j.recruiter_email ? `<span class="text-indigo-600 font-semibold"><i class="fa-solid fa-envelope mr-1"></i>${j.recruiter_email}</span>` : ''}
+                  </div>
+                </div>
+
+                <!-- Action Buttons: Apply & Skip -->
+                <div class="flex items-center flex-wrap gap-2 pt-2 sm:pt-0 flex-shrink-0">
+                  ${j.recruiter_email ? `
+                    <button type="button" onclick="handleJobAction('${j.id}', 'send_email')" class="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm transition flex items-center space-x-1.5 cursor-pointer">
+                      <i class="fa-solid fa-paper-plane"></i>
+                      <span>Send Email</span>
+                    </button>
+                  ` : ''}
+                  <a href="${j.apply_url}" target="_blank" rel="noopener noreferrer" onclick="handleJobAction('${j.id}', 'mark_applied')" class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm transition flex items-center space-x-1.5 cursor-pointer">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    <span>Apply URL</span>
+                  </a>
+                  <button type="button" onclick="handleJobAction('${j.id}', 'skip')" class="bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-200 hover:border-rose-300 text-xs font-semibold px-3 py-2 rounded-xl transition flex items-center space-x-1.5 cursor-pointer" title="Skip this job">
+                    <i class="fa-solid fa-forward text-slate-400 group-hover:text-rose-500"></i>
+                    <span>Skip</span>
+                  </button>
+                </div>
+              </div>
+
+              ${skillsHtml ? `<div class="mt-3 flex flex-wrap gap-1.5">${skillsHtml}</div>` : ''}
+
+              ${j.tailored_pitch ? `
+                <div class="mt-4 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs text-slate-700 leading-relaxed">
+                  <div class="font-bold text-slate-900 mb-1 flex items-center space-x-1.5">
+                    <i class="fa-solid fa-wand-magic-sparkles text-indigo-500"></i>
+                    <span>Tailored Outreach Pitch Preview:</span>
+                  </div>
+                  <p class="italic font-serif text-slate-800 text-sm mt-1">${j.tailored_pitch}</p>
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }).join('');
+
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function handleJobAction(jobId, action) {
+      if (action === 'send_email') {
+        if (!confirm('Send tailored cold pitch email with attached CV to the recruiter?')) return;
+      }
+      try {
+        const res = await fetch(`/api/jobs/${jobId}/action?id=${encodeURIComponent(activeProfile)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(data.message || 'Action executed successfully');
+          await loadJobs(currentStatusFilter);
+          await loadStats();
+        } else {
+          showToast(data.message || 'Action failed', true);
+        }
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    async function triggerDiscovery() {
+      const btn = document.getElementById('searchDiscoverBtn');
+      const overlay = document.getElementById('loadingOverlay');
+
+      btn.disabled = true;
+      btn.classList.add('opacity-70', 'cursor-not-allowed');
+      overlay.classList.remove('hidden');
+
+      try {
+        const res = await fetch('/api/discover', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ profileId: activeProfile, evalLimit: 10 }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`Discovery complete! Scraped: ${data.report.scrapedCount}, Qualified: ${data.report.qualifiedCount}`);
+          await loadJobs('qualified');
+          await loadStats();
+        } else {
+          showToast(data.error || 'Discovery failed', true);
+        }
+      } catch (err) {
+        showToast(err.message, true);
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('opacity-70', 'cursor-not-allowed');
+        overlay.classList.add('hidden');
+      }
+    }
+
+    async function testSmtp() {
+      const btn = document.getElementById('testSmtpBtn');
+      const resEl = document.getElementById('smtpResult');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Testing...';
+      resEl.classList.add('hidden');
+
+      const smtp = {
+        host: document.getElementById('smtp_host').value.trim(),
+        port: parseInt(document.getElementById('smtp_port').value, 10) || 587,
+        secure: false,
+        user: document.getElementById('smtp_user').value.trim(),
+        pass: document.getElementById('smtp_pass').value.trim(),
+        from_name: document.getElementById('smtp_from_name').value.trim(),
+      };
+
+      try {
+        const res = await fetch('/api/test-smtp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ smtp }),
+        });
+        const data = await res.json();
+        resEl.classList.remove('hidden');
+        if (data.success) {
+          resEl.className = 'mb-4 text-xs p-3 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200';
+          resEl.innerHTML = `<strong>Success:</strong> ${data.message}`;
+        } else {
+          resEl.className = 'mb-4 text-xs p-3 rounded-xl bg-rose-50 text-rose-800 border border-rose-200';
+          resEl.innerHTML = `<strong>Error:</strong> ${data.message}`;
+        }
+      } catch (err) {
+        resEl.classList.remove('hidden');
+        resEl.className = 'mb-4 text-xs p-3 rounded-xl bg-rose-50 text-rose-800 border border-rose-200';
+        resEl.innerHTML = `<strong>Error:</strong> ${err.message}`;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-envelope-circle-check mr-1.5"></i> Test Connection';
+      }
+    }
+
+    async function checkLinkedInStatus() {
+      try {
+        const res = await fetch('/api/linkedin/status');
+        const data = await res.json();
+        const badge = document.getElementById('linkedInStatusBadge');
+        const headerBadge = document.getElementById('headerLinkedInBadge');
+        const headerText = document.getElementById('headerLinkedInText');
+        const headerIcon = document.getElementById('headerLinkedInIcon');
+        const connectBtn = document.getElementById('connectLinkedInBtn');
+        const connectBtnText = document.getElementById('connectLinkedInBtnText');
+        const disconnectBtn = document.getElementById('disconnectLinkedInBtn');
+
+        if (data.connected) {
+          badge.className = 'text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800 border border-emerald-300';
+          badge.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> Connected';
+          headerText.textContent = 'LinkedIn: Connected';
+          headerIcon.className = 'fa-brands fa-linkedin text-blue-400';
+          connectBtn.className = 'bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-300 transition flex items-center space-x-1.5';
+          connectBtnText.textContent = 'Reconnect Session';
+          disconnectBtn.classList.remove('hidden');
+        } else {
+          badge.className = 'text-xs px-2.5 py-0.5 rounded-full font-bold bg-slate-100 text-slate-500 border border-slate-200';
+          badge.textContent = 'Not Connected';
+          headerText.textContent = 'LinkedIn: Not Connected';
+          headerIcon.className = 'fa-brands fa-linkedin text-slate-400';
+          connectBtn.className = 'bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition flex items-center space-x-2';
+          connectBtnText.textContent = 'Connect LinkedIn';
+          disconnectBtn.classList.add('hidden');
+        }
+      } catch (err) {
+        console.error('Error checking LinkedIn status:', err);
+      }
+    }
+
+    async function connectLinkedIn() {
+      const btn = document.getElementById('connectLinkedInBtn');
+      const notice = document.getElementById('linkedInConnectingNotice');
+      btn.disabled = true;
+      notice.classList.remove('hidden');
+      showToast('Opening LinkedIn login in a Chrome window... Please log in.');
+
+      try {
+        const res = await fetch('/api/linkedin/connect', { method: 'POST' });
+        const data = await res.json();
+        notice.classList.add('hidden');
+
+        if (data.success) {
+          showToast(data.message || 'LinkedIn connected successfully!');
+          await checkLinkedInStatus();
+        } else {
+          showToast(data.message || 'Failed to connect LinkedIn', true);
+        }
+      } catch (err) {
+        notice.classList.add('hidden');
+        showToast(err.message, true);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function disconnectLinkedIn() {
+      if (!confirm('Disconnect your saved LinkedIn browser session?')) return;
+      try {
+        const res = await fetch('/api/linkedin/disconnect', { method: 'POST' });
+        const data = await res.json();
+        showToast(data.message || 'LinkedIn session removed.');
+        await checkLinkedInStatus();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    function toggleTestEmailDrawer() {
+      const drawer = document.getElementById('testEmailDrawer');
+      const chevron = document.getElementById('testEmailChevron');
+      const isHidden = drawer.classList.contains('hidden');
+
+      if (isHidden) {
+        drawer.classList.remove('hidden');
+        chevron.classList.add('rotate-180');
+      } else {
+        drawer.classList.add('hidden');
+        chevron.classList.remove('rotate-180');
+      }
+    }
+
+    async function sendLiveTestEmailFromUI() {
+      const btn = document.getElementById('sendLiveTestBtn');
+      const resEl = document.getElementById('liveTestResult');
+      const recipient = document.getElementById('live_test_recipient').value.trim();
+      const subject = document.getElementById('live_test_subject').value.trim();
+      const body = document.getElementById('live_test_body').value.trim();
+      const attachCv = document.getElementById('live_test_attach_cv').checked;
+
+      if (!recipient) {
+        showToast('Please enter a recipient email address.', true);
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Sending Test Email...';
+      resEl.classList.add('hidden');
+
+      const smtp = {
+        host: document.getElementById('smtp_host').value.trim(),
+        port: parseInt(document.getElementById('smtp_port').value, 10) || 587,
+        secure: false,
+        user: document.getElementById('smtp_user').value.trim(),
+        pass: document.getElementById('smtp_pass').value.trim(),
+        from_name: document.getElementById('smtp_from_name').value.trim(),
+      };
+
+      try {
+        const res = await fetch(`/api/send-test-email?id=${encodeURIComponent(activeProfile)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ recipient, subject, body, attachCv, smtp }),
+        });
+        const data = await res.json();
+        resEl.classList.remove('hidden');
+
+        if (data.success) {
+          resEl.className = 'text-xs p-3 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 mt-2';
+          resEl.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> <strong>Success:</strong> ${data.message}`;
+          showToast(`Test email dispatched to ${recipient}!`);
+        } else {
+          resEl.className = 'text-xs p-3 rounded-xl bg-rose-50 text-rose-800 border border-rose-200 mt-2';
+          resEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-600 mr-1"></i> <strong>Error:</strong> ${data.message}`;
+          showToast('Failed to dispatch test email', true);
+        }
+      } catch (err) {
+        resEl.classList.remove('hidden');
+        resEl.className = 'text-xs p-3 rounded-xl bg-rose-50 text-rose-800 border border-rose-200 mt-2';
+        resEl.innerHTML = `<strong>Error:</strong> ${err.message}`;
+        showToast(err.message, true);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane mr-1.5"></i> Send Live Test Email';
+      }
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>

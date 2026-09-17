@@ -1,0 +1,13 @@
+{
+  "ai_provider": "openai",
+  "ai_model": "gpt-4o-mini",
+  "api_key": "",
+  "smtp": {
+    "host": "smtp.gmail.com",
+    "port": 587,
+    "secure": false,
+    "user": "",
+    "pass": "",
+    "from_name": ""
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "name": "get-hired",
+  "version": "1.0.0",
+  "description": "Autonomous Remote Job Discovery & Application Copilot (Agentic Pipeline)",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node src/index.ts",
+    "discover": "ts-node src/index.ts discover",
+    "triage": "ts-node src/index.ts triage",
+    "ui": "ts-node src/ui/server.ts",
+    "dashboard": "ts-node src/ui/server.ts",
+    "stats": "ts-node src/index.ts stats",
+    "test-smtp": "ts-node src/index.ts test-smtp",
+    "linkedin-login": "ts-node src/scrapers/linkedinAuth.ts",
+    "test": "ts-node src/tests/filterTest.ts"
+  },
+  "keywords": [
+    "job-copilot",
+    "job-hunter",
+    "remote-work",
+    "agentic",
+    "playwright",
+    "llm",
+    "sqlite",
+    "react-native"
+  ],
+  "author": "Affan & Open Source Contributors",
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.126.0",
+    "@google/generative-ai": "^0.24.1",
+    "boxen": "^5.1.2",
+    "chalk": "^4.1.2",
+    "cheerio": "^1.0.0-rc.12",
+    "commander": "^11.1.0",
+    "dotenv": "^16.4.5",
+    "inquirer": "^8.2.6",
+    "nodemailer": "^6.9.13",
+    "open": "^8.4.2",
+    "openai": "^4.33.0",
+    "playwright": "^1.42.1",
+    "rss-parser": "^3.13.0",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.9",
+    "@types/chalk": "^2.2.0",
+    "@types/inquirer": "^8.2.10",
+    "@types/node": "^20.11.30",
+    "@types/nodemailer": "^6.4.14",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.3"
+  }
+}
