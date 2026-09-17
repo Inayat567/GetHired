@@ -22,7 +22,7 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
+    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
       {/* Dashboard Header */}
       <header className="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-30 shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -88,14 +88,12 @@ export default function DashboardPage() {
         />
       </main>
 
-      {/* Creator Freelance Banner & Buy Me a Coffee in Dashboard Footer */}
+      {/* Creator Freelance Banner in Dashboard Footer */}
       <footer className="bg-slate-900 text-slate-300 py-4 px-4 border-t border-slate-800 text-xs flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="flex items-center space-x-2 text-slate-400">
           <span>GetHired Copilot by <strong>Inayat Ali</strong></span>
           <span>•</span>
-          <a href="https://innunext.com" target="_blank" rel="noopener noreferrer" className="text-amber-300 hover:underline">
-            ☕ Buy me a coffee
-          </a>
+          <span className="text-slate-500">Autonomous Job Discovery & Outreach</span>
         </div>
 
         <div className="flex items-center space-x-3">

@@ -38,11 +38,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="h-full bg-slate-50">
+    <html lang="en" className="h-full bg-slate-950 text-slate-100">
       <head>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
       </head>
-      <body className="h-full flex flex-col text-slate-800 antialiased font-sans">
+      <body className="h-full flex flex-col bg-slate-950 text-slate-100 antialiased font-sans">
         {children}
       </body>
     </html>
