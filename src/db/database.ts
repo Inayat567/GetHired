@@ -55,8 +55,25 @@ export async function getDb(dbPath: string = './jobs.db'): Promise<Database> {
       FOREIGN KEY(job_id) REFERENCES jobs(id)
     );
 
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      avatar_url TEXT,
+      auth_provider TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      last_login TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS auth_codes (
+      email TEXT PRIMARY KEY,
+      code TEXT NOT NULL,
+      expires_at INTEGER NOT NULL
+    );
+
     CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
     CREATE INDEX IF NOT EXISTS idx_jobs_score ON jobs(match_score);
+    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
   `);
 
   // Migrate existing table if skipped_by column doesn't exist
@@ -199,4 +216,51 @@ export async function logOutreach(
      VALUES (?, ?, ?, ?, ?)`,
     [jobId, recipientEmail, subject, status, errorMessage || null]
   );
+}
+
+export async function upsertUser(
+  db: Database,
+  user: { id: string; email: string; name: string; avatar_url?: string | null; auth_provider: 'google' | 'github' | 'email' }
+) {
+  await db.run(
+    `INSERT INTO users (id, email, name, avatar_url, auth_provider, last_login)
+     VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+     ON CONFLICT(email) DO UPDATE SET
+       name = excluded.name,
+       avatar_url = COALESCE(excluded.avatar_url, users.avatar_url),
+       auth_provider = excluded.auth_provider,
+       last_login = CURRENT_TIMESTAMP`,
+    [user.id, user.email, user.name, user.avatar_url || null, user.auth_provider]
+  );
+  return db.get(`SELECT * FROM users WHERE email = ?`, [user.email]);
+}
+
+export async function getUserById(db: Database, id: string) {
+  return db.get(`SELECT * FROM users WHERE id = ?`, [id]);
+}
+
+export async function getUserByEmail(db: Database, email: string) {
+  return db.get(`SELECT * FROM users WHERE email = ?`, [email]);
+}
+
+export async function saveAuthCode(db: Database, email: string, code: string, ttlSeconds: number = 600) {
+  const expiresAt = Date.now() + ttlSeconds * 1000;
+  await db.run(
+    `INSERT INTO auth_codes (email, code, expires_at)
+     VALUES (?, ?, ?)
+     ON CONFLICT(email) DO UPDATE SET code = excluded.code, expires_at = excluded.expires_at`,
+    [email, code, expiresAt]
+  );
+}
+
+export async function verifyAuthCode(db: Database, email: string, code: string): Promise<boolean> {
+  const row = await db.get(`SELECT * FROM auth_codes WHERE email = ?`, [email]);
+  if (!row) return false;
+  if (row.code !== code) return false;
+  if (Date.now() > row.expires_at) {
+    await db.run(`DELETE FROM auth_codes WHERE email = ?`, [email]);
+    return false;
+  }
+  await db.run(`DELETE FROM auth_codes WHERE email = ?`, [email]);
+  return true;
 }

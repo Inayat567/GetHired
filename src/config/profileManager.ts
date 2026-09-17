@@ -11,7 +11,7 @@ export interface UserProfileBundle {
   cvSizeBytes?: number;
 }
 
-const PROFILES_ROOT = path.resolve('./profiles');
+const PROFILES_ROOT = process.env.PROFILES_DIR ? path.resolve(process.env.PROFILES_DIR) : path.resolve('./profiles');
 
 export function ensureProfilesDirectory() {
   if (!fs.existsSync(PROFILES_ROOT)) {

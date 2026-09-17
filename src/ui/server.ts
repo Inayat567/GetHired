@@ -3,7 +3,7 @@ import url from 'url';
 import fs from 'fs';
 import path from 'path';
 import { loadConfig } from '../config';
-import { getDb, getStats, getQualifiedJobsForTriage, updateJobStatus } from '../db/database';
+import { getDb, getStats, getQualifiedJobsForTriage, updateJobStatus, getUserById } from '../db/database';
 import {
   listProfiles,
   loadProfileBundle,
@@ -19,6 +19,16 @@ import { runIngestion } from '../scrapers/ingestionService';
 import { evaluatePendingJobs } from '../llm/evaluator';
 import { sendPitchEmail, testSmtpConnection, sendLiveTestEmail } from '../mailer/mailer';
 import { isLinkedInConnected, connectLinkedInSession, disconnectLinkedIn } from '../scrapers/linkedinAuth';
+import {
+  getSessionFromCookie,
+  createSessionToken,
+  getGitHubAuthUrl,
+  handleGitHubCallback,
+  getGoogleAuthUrl,
+  handleGoogleCallback,
+  sendEmailOtp,
+  verifyEmailOtp,
+} from '../auth/authService';
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
@@ -69,9 +79,144 @@ export async function startServer() {
     }
 
     try {
+      // -------------------------------------------------------------
+      // AUTHENTICATION API ENDPOINTS
+      // -------------------------------------------------------------
+      const session = getSessionFromCookie(req);
+
+      // Current Session Check
+      if (pathname === '/api/auth/me' && method === 'GET') {
+        if (!session) return sendJson(res, 200, { authenticated: false });
+        const user = await getUserById(db, session.userId);
+        return sendJson(res, 200, { authenticated: !!user, user: user || null });
+      }
+
+      // Logout
+      if (pathname === '/api/auth/logout' && method === 'POST') {
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Set-Cookie': 'gethired_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0',
+        });
+        return res.end(JSON.stringify({ success: true, message: 'Logged out successfully.' }));
+      }
+
+      // GitHub OAuth Entry
+      if (pathname === '/api/auth/github' && method === 'GET') {
+        const protocol = req.headers['x-forwarded-proto'] || 'http';
+        const host = req.headers.host || `localhost:${PORT}`;
+        const redirectUri = `${protocol}://${host}/api/auth/github/callback`;
+        try {
+          const authUrl = getGitHubAuthUrl(redirectUri);
+          res.writeHead(302, { Location: authUrl });
+          res.end();
+          return;
+        } catch (err: any) {
+          return sendJson(res, 500, { error: err.message });
+        }
+      }
+
+      // GitHub OAuth Callback
+      if (pathname === '/api/auth/github/callback' && method === 'GET') {
+        const code = parsedUrl.query.code as string;
+        if (!code) return sendJson(res, 400, { error: 'Missing GitHub code parameter.' });
+
+        const protocol = req.headers['x-forwarded-proto'] || 'http';
+        const host = req.headers.host || `localhost:${PORT}`;
+        const redirectUri = `${protocol}://${host}/api/auth/github/callback`;
+
+        try {
+          const user = await handleGitHubCallback(code, redirectUri, db);
+          const token = createSessionToken(user.id, user.email);
+
+          res.writeHead(302, {
+            Location: '/',
+            'Set-Cookie': `gethired_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${365 * 24 * 60 * 60}`,
+          });
+          res.end();
+          return;
+        } catch (err: any) {
+          console.error('[GitHub Auth Error]', err);
+          res.writeHead(302, { Location: '/?error=' + encodeURIComponent(err.message) });
+          res.end();
+          return;
+        }
+      }
+
+      // Google OAuth Entry
+      if (pathname === '/api/auth/google' && method === 'GET') {
+        const protocol = req.headers['x-forwarded-proto'] || 'http';
+        const host = req.headers.host || `localhost:${PORT}`;
+        const redirectUri = `${protocol}://${host}/api/auth/google/callback`;
+        try {
+          const authUrl = getGoogleAuthUrl(redirectUri);
+          res.writeHead(302, { Location: authUrl });
+          res.end();
+          return;
+        } catch (err: any) {
+          return sendJson(res, 500, { error: err.message });
+        }
+      }
+
+      // Google OAuth Callback
+      if (pathname === '/api/auth/google/callback' && method === 'GET') {
+        const code = parsedUrl.query.code as string;
+        if (!code) return sendJson(res, 400, { error: 'Missing Google code parameter.' });
+
+        const protocol = req.headers['x-forwarded-proto'] || 'http';
+        const host = req.headers.host || `localhost:${PORT}`;
+        const redirectUri = `${protocol}://${host}/api/auth/google/callback`;
+
+        try {
+          const user = await handleGoogleCallback(code, redirectUri, db);
+          const token = createSessionToken(user.id, user.email);
+
+          res.writeHead(302, {
+            Location: '/',
+            'Set-Cookie': `gethired_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${365 * 24 * 60 * 60}`,
+          });
+          res.end();
+          return;
+        } catch (err: any) {
+          console.error('[Google Auth Error]', err);
+          res.writeHead(302, { Location: '/?error=' + encodeURIComponent(err.message) });
+          res.end();
+          return;
+        }
+      }
+
+      // Email OTP Send
+      if (pathname === '/api/auth/send-otp' && method === 'POST') {
+        const body = await parseBody(req);
+        if (!body.email) return sendJson(res, 400, { error: 'Email is required.' });
+        await sendEmailOtp(body.email, db);
+        return sendJson(res, 200, { success: true, message: 'Verification code sent to your email.' });
+      }
+
+      // Email OTP Verify
+      if (pathname === '/api/auth/verify-otp' && method === 'POST') {
+        const body = await parseBody(req);
+        if (!body.email || !body.code) return sendJson(res, 400, { error: 'Email and 6-digit code are required.' });
+        const user = await verifyEmailOtp(body.email, body.code, db);
+        if (!user) return sendJson(res, 400, { error: 'Invalid or expired verification code.' });
+
+        const token = createSessionToken(user.id, user.email);
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Set-Cookie': `gethired_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${365 * 24 * 60 * 60}`,
+        });
+        return res.end(JSON.stringify({ success: true, user }));
+      }
+
+      // Resolve active profile ID: Use logged-in user ID, or requested query param, or 'default'
+      const effectiveProfileId = session ? session.userId : ((parsedUrl.query.id as string) || 'default');
+
       // API: List Profiles
       if (pathname === '/api/profiles' && method === 'GET') {
-        return sendJson(res, 200, { profiles: listProfiles() });
+        const list = listProfiles();
+        if (session && !list.includes(session.userId)) {
+          list.unshift(session.userId);
+        }
+        return sendJson(res, 200, { profiles: list, active: effectiveProfileId });
       }
 
       // API: Create Profile
@@ -89,14 +234,14 @@ export async function startServer() {
 
       // API: Get Active Profile Bundle
       if (pathname === '/api/profile' && method === 'GET') {
-        const profileId = (parsedUrl.query.id as string) || 'default';
+        const profileId = (parsedUrl.query.id as string) || effectiveProfileId;
         const bundle = loadProfileBundle(profileId);
         return sendJson(res, 200, bundle);
       }
 
       // API: Save Candidate Profile
       if (pathname === '/api/profile' && method === 'POST') {
-        const profileId = (parsedUrl.query.id as string) || 'default';
+        const profileId = (parsedUrl.query.id as string) || effectiveProfileId;
         const body = await parseBody(req);
         saveCandidateProfile(profileId, body);
         return sendJson(res, 200, { success: true, message: 'Candidate profile updated.' });
@@ -104,7 +249,7 @@ export async function startServer() {
 
       // API: Save Preferences
       if (pathname === '/api/preferences' && method === 'POST') {
-        const profileId = (parsedUrl.query.id as string) || 'default';
+        const profileId = (parsedUrl.query.id as string) || effectiveProfileId;
         const body = await parseBody(req);
         savePreferences(profileId, body);
         return sendJson(res, 200, { success: true, message: 'Preferences updated.' });
@@ -112,13 +257,13 @@ export async function startServer() {
 
       // API: Get / Save AI & SMTP Settings
       if (pathname === '/api/settings' && method === 'GET') {
-        const profileId = (parsedUrl.query.id as string) || 'default';
+        const profileId = (parsedUrl.query.id as string) || effectiveProfileId;
         const bundle = loadProfileBundle(profileId);
         return sendJson(res, 200, bundle.settings);
       }
 
       if (pathname === '/api/settings' && method === 'POST') {
-        const profileId = (parsedUrl.query.id as string) || 'default';
+        const profileId = (parsedUrl.query.id as string) || effectiveProfileId;
         const body = await parseBody(req);
         saveUserSettings(profileId, body);
         return sendJson(res, 200, { success: true, message: 'AI & SMTP settings saved successfully.' });
@@ -126,7 +271,7 @@ export async function startServer() {
 
       // API: Upload CV (Base64 PDF)
       if (pathname === '/api/cv/upload' && method === 'POST') {
-        const profileId = (parsedUrl.query.id as string) || 'default';
+        const profileId = (parsedUrl.query.id as string) || effectiveProfileId;
         const body = await parseBody(req);
         if (!body.base64) return sendJson(res, 400, { error: 'base64 data required' });
         const cleanBase64 = body.base64.replace(/^data:application\/pdf;base64,/, '');
@@ -191,7 +336,7 @@ export async function startServer() {
 
       // API: Check Profile Completeness & Readiness
       if (pathname === '/api/profile/validate' && method === 'GET') {
-        const profileId = (parsedUrl.query.id as string) || 'default';
+        const profileId = (parsedUrl.query.id as string) || effectiveProfileId;
         const validation = validateProfileCompleteness(profileId);
         return sendJson(res, 200, validation);
       }
@@ -199,7 +344,7 @@ export async function startServer() {
       // API: Run Discovery & Evaluation
       if (pathname === '/api/discover' && method === 'POST') {
         const body = await parseBody(req);
-        const profileId = body.profileId || (parsedUrl.query.id as string) || 'default';
+        const profileId = body.profileId || (parsedUrl.query.id as string) || effectiveProfileId;
         const bundle = loadProfileBundle(profileId);
 
         // Validate mandatory configuration before running discovery & AI evaluation

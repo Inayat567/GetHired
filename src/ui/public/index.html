@@ -126,6 +126,26 @@
           <i class="fa-brands fa-linkedin text-slate-400" id="headerLinkedInIcon"></i>
           <span id="headerLinkedInText">LinkedIn: Checking...</span>
         </div>
+
+        <!-- User Authentication Header Component -->
+        <div id="authHeaderContainer" class="flex items-center">
+          <!-- Unauthenticated State Button -->
+          <button id="headerSignInBtn" onclick="openAuthModal()" class="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg shadow-sm transition">
+            <i class="fa-solid fa-right-to-bracket"></i>
+            <span>Sign In</span>
+          </button>
+
+          <!-- Authenticated State User Menu -->
+          <div id="headerUserMenu" class="hidden flex items-center space-x-2.5">
+            <div class="flex items-center space-x-2 bg-slate-800 py-1 px-2.5 rounded-lg border border-slate-700">
+              <img id="headerUserAvatar" src="/logo.svg" alt="User Avatar" class="w-6 h-6 rounded-full object-cover border border-slate-600" />
+              <span id="headerUserName" class="text-xs font-semibold text-white max-w-[110px] truncate">User</span>
+            </div>
+            <button onclick="handleLogout()" title="Sign Out" class="text-slate-400 hover:text-rose-400 text-xs px-2 py-1.5 rounded-lg hover:bg-slate-800 transition">
+              <i class="fa-solid fa-power-off"></i>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </header>
@@ -677,6 +697,91 @@
 
   </main>
 
+  <!-- =================================================================== -->
+  <!-- AUTHENTICATION MODAL (Google, GitHub, and Passwordless OTP)        -->
+  <!-- =================================================================== -->
+  <div id="authModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-7 sm:p-8 shadow-2xl border border-slate-200 relative transform transition-all">
+      <!-- Close Button -->
+      <button onclick="closeAuthModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-700 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+
+      <!-- Modal Header -->
+      <div class="text-center mb-6">
+        <div class="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 p-2 mx-auto flex items-center justify-center mb-3 shadow-inner">
+          <img src="/logo.svg" alt="GetHired Logo" class="w-10 h-10 object-contain" />
+        </div>
+        <h3 class="text-2xl font-black text-slate-900 tracking-tight">Sign in to GetHired</h3>
+        <p class="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
+          Save your candidate profile, target filters, and AI outreach pitches securely across all your devices.
+        </p>
+      </div>
+
+      <!-- OAuth 1-Click Buttons -->
+      <div class="space-y-3">
+        <!-- Continue with Google -->
+        <a href="/api/auth/google" class="w-full flex items-center justify-center space-x-3 bg-white hover:bg-slate-50 active:scale-[0.99] border border-slate-300 text-slate-700 font-bold text-sm py-3 px-4 rounded-xl shadow-sm transition">
+          <svg class="w-4 h-4" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+          </svg>
+          <span>Continue with Google</span>
+        </a>
+
+        <!-- Continue with GitHub -->
+        <a href="/api/auth/github" class="w-full flex items-center justify-center space-x-3 bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-bold text-sm py-3 px-4 rounded-xl shadow-sm transition">
+          <i class="fa-brands fa-github text-base"></i>
+          <span>Continue with GitHub</span>
+        </a>
+      </div>
+
+      <!-- Divider -->
+      <div class="relative my-6 text-center">
+        <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-200"></div></div>
+        <span class="relative bg-white px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">or with email code</span>
+      </div>
+
+      <!-- Passwordless Email OTP Section -->
+      <div id="otpSection">
+        <!-- Step 1: Request Code -->
+        <form id="otpEmailForm" onsubmit="handleSendOtp(event)" class="space-y-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Email Address</label>
+            <input type="email" id="authEmailInput" required placeholder="you@example.com" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium" />
+          </div>
+          <button type="submit" id="sendOtpBtn" class="w-full bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] text-white font-bold text-sm py-2.5 rounded-xl shadow-sm transition flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-paper-plane text-xs"></i>
+            <span>Send 6-Digit Code</span>
+          </button>
+        </form>
+
+        <!-- Step 2: Verify Code (Hidden Initially) -->
+        <form id="otpVerifyForm" onsubmit="handleVerifyOtp(event)" class="hidden space-y-3">
+          <div class="p-3 bg-indigo-50 rounded-xl border border-indigo-200 text-xs text-indigo-900 flex items-center justify-between">
+            <span>Code sent to <strong id="otpTargetEmail"></strong></span>
+            <button type="button" onclick="resetOtpStep()" class="text-indigo-600 hover:underline font-bold text-[11px]">Change</button>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Enter 6-Digit Code</label>
+            <input type="text" id="otpCodeInput" maxlength="6" pattern="[0-9]{6}" required placeholder="123456" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-center text-lg tracking-[6px] font-mono font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+          <button type="submit" id="verifyOtpBtn" class="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white font-bold text-sm py-2.5 rounded-xl shadow-sm transition flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-check"></i>
+            <span>Verify & Sign In</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Legal Footnote -->
+      <p class="text-[11px] text-slate-400 text-center mt-5">
+        By continuing, you agree to GetHired's Open Source terms and local-first privacy architecture.
+      </p>
+    </div>
+  </div>
+
   <!-- Floating Toast Notification -->
   <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition duration-300 flex items-center space-x-2.5 bg-slate-900 text-white text-sm px-5 py-3.5 rounded-xl shadow-2xl border border-slate-800">
     <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
@@ -687,15 +792,132 @@
     let activeProfile = 'default';
     let currentStatusFilter = 'qualified';
     let aiModelsCatalog = {};
+    let currentUser = null;
 
     async function init() {
       setupDropZone();
+      await checkAuth();
       await loadAiModels();
       await loadProfileList();
       await loadProfileData(activeProfile);
       await loadJobs(currentStatusFilter);
       await loadStats();
       await checkLinkedInStatus();
+    }
+
+    async function checkAuth() {
+      try {
+        const res = await fetch('/api/auth/me');
+        const data = await res.json();
+        const signInBtn = document.getElementById('headerSignInBtn');
+        const userMenu = document.getElementById('headerUserMenu');
+        const avatar = document.getElementById('headerUserAvatar');
+        const name = document.getElementById('headerUserName');
+
+        if (data.authenticated && data.user) {
+          currentUser = data.user;
+          signInBtn.classList.add('hidden');
+          userMenu.classList.remove('hidden');
+          name.textContent = currentUser.name || currentUser.email;
+          if (currentUser.avatar_url) avatar.src = currentUser.avatar_url;
+          activeProfile = currentUser.id;
+        } else {
+          currentUser = null;
+          signInBtn.classList.remove('hidden');
+          userMenu.classList.add('hidden');
+        }
+      } catch (err) {
+        console.error('Auth check error:', err);
+      }
+    }
+
+    function openAuthModal() {
+      document.getElementById('authModal').classList.remove('hidden');
+    }
+
+    function closeAuthModal() {
+      document.getElementById('authModal').classList.add('hidden');
+    }
+
+    async function handleSendOtp(e) {
+      e.preventDefault();
+      const email = document.getElementById('authEmailInput').value.trim();
+      const btn = document.getElementById('sendOtpBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Sending Code...';
+
+      try {
+        const res = await fetch('/api/auth/send-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`Code sent! Please check ${email}`);
+          document.getElementById('otpTargetEmail').textContent = email;
+          document.getElementById('otpEmailForm').classList.add('hidden');
+          document.getElementById('otpVerifyForm').classList.remove('hidden');
+          document.getElementById('otpCodeInput').focus();
+        } else {
+          showToast(data.error || 'Failed to send code', true);
+        }
+      } catch (err) {
+        showToast(err.message, true);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane text-xs mr-1.5"></i> Send 6-Digit Code';
+      }
+    }
+
+    async function handleVerifyOtp(e) {
+      e.preventDefault();
+      const email = document.getElementById('authEmailInput').value.trim();
+      const code = document.getElementById('otpCodeInput').value.trim();
+      const btn = document.getElementById('verifyOtpBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Verifying...';
+
+      try {
+        const res = await fetch('/api/auth/verify-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, code }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Signed in successfully!');
+          closeAuthModal();
+          await checkAuth();
+          await loadProfileList();
+          await loadProfileData(activeProfile);
+          await loadJobs(currentStatusFilter);
+        } else {
+          showToast(data.error || 'Invalid code', true);
+        }
+      } catch (err) {
+        showToast(err.message, true);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check mr-1.5"></i> Verify & Sign In';
+      }
+    }
+
+    function resetOtpStep() {
+      document.getElementById('otpVerifyForm').classList.add('hidden');
+      document.getElementById('otpEmailForm').classList.remove('hidden');
+      document.getElementById('otpCodeInput').value = '';
+    }
+
+    async function handleLogout() {
+      if (!confirm('Are you sure you want to sign out?')) return;
+      try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        showToast('Signed out.');
+        location.reload();
+      } catch (err) {
+        showToast(err.message, true);
+      }
     }
 
     function showToast(msg, isError = false) {

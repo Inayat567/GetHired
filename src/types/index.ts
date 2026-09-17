@@ -160,3 +160,19 @@ export interface RawJobListing {
   recruiter_name?: string;
   recruiter_email?: string;
 }
+
+export interface UserAccount {
+  id: string;
+  email: string;
+  name: string;
+  avatar_url?: string | null;
+  auth_provider: 'google' | 'github' | 'email';
+  created_at: string;
+  last_login: string;
+}
+
+export interface AuthCode {
+  email: string;
+  code: string;
+  expires_at: number;
+}
