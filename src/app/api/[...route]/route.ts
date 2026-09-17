@@ -1,15 +1,17 @@
 import { NextResponse } from 'next/server';
 import path from 'path';
 import { loadConfig } from '@/config';
-import { getDb, getStats, getQualifiedJobsForTriage, updateJobStatus, getUserById } from '@/db/database';
+import { getDb, getStats, getQualifiedJobsForTriage, getJobsForProfile, updateJobStatus, updateProfileJobStatus, getUserById } from '@/db/database';
 import {
   listProfiles,
+  listProfilesForUser,
   loadProfileBundle,
   saveCandidateProfile,
   savePreferences,
   saveUserSettings,
   saveCvFile,
   createNewProfile,
+  createUserProfile,
   validateProfileCompleteness,
 } from '@/config/profileManager';
 import { AI_MODELS_BY_PROVIDER } from '@/types';
@@ -143,16 +145,25 @@ export async function GET(req: Request, context: { params: Promise<{ route: stri
       }
     }
 
-    // Resolve profile ID
-    const effectiveProfileId = session ? session.userId : (searchParams.get('id') || 'default');
-
-    // 6. Profiles list
-    if (pathname === '/api/profiles') {
-      const list = listProfiles();
-      if (session && !list.includes(session.userId)) {
-        list.unshift(session.userId);
+    // Resolve profile ID safely
+    let effectiveProfileId = 'default';
+    let currentUserAccount: any = null;
+    if (session) {
+      currentUserAccount = await getUserById(db, session.userId);
+      const requestedId = searchParams.get('id');
+      if (requestedId && (requestedId === session.userId || requestedId.startsWith(session.userId + '__'))) {
+        effectiveProfileId = requestedId;
+      } else {
+        effectiveProfileId = session.userId;
       }
-      return NextResponse.json({ profiles: list, active: effectiveProfileId });
+    } else {
+      effectiveProfileId = searchParams.get('id') || 'default';
+    }
+
+    // 6. Profiles list (Strictly scoped to logged in user)
+    if (pathname === '/api/profiles') {
+      const profileSummaries = listProfilesForUser(session?.userId, currentUserAccount || undefined);
+      return NextResponse.json({ profiles: profileSummaries, active: effectiveProfileId });
     }
 
     // 7. AI Models
@@ -174,17 +185,11 @@ export async function GET(req: Request, context: { params: Promise<{ route: stri
       return NextResponse.json(bundle.settings);
     }
 
-    // 10. Get Jobs
+    // 10. Get Jobs (Strictly linked to active user persona profile)
     if (pathname === '/api/jobs') {
       const status = searchParams.get('status') || 'qualified';
-      let jobs;
-      if (status === 'qualified') {
-        jobs = await getQualifiedJobsForTriage(db);
-      } else if (status === 'skipped') {
-        jobs = await db.all(`SELECT * FROM jobs WHERE status = 'skipped' AND skipped_by = 'user' ORDER BY updated_at DESC, created_at DESC LIMIT 50`);
-      } else {
-        jobs = await db.all(`SELECT * FROM jobs WHERE status = ? ORDER BY match_score DESC, created_at DESC LIMIT 50`, [status]);
-      }
+      const profileId = searchParams.get('id') || effectiveProfileId;
+      const jobs = await getJobsForProfile(db, profileId, status);
       return NextResponse.json({ jobs });
     }
 
@@ -195,9 +200,10 @@ export async function GET(req: Request, context: { params: Promise<{ route: stri
       return NextResponse.json(validation);
     }
 
-    // 12. Stats
+    // 12. Stats (Strictly linked to active user persona profile)
     if (pathname === '/api/stats') {
-      const stats = await getStats(db);
+      const profileId = searchParams.get('id') || effectiveProfileId;
+      const stats = await getStats(db, profileId);
       return NextResponse.json(stats);
     }
 
@@ -221,7 +227,19 @@ export async function POST(req: Request, context: { params: Promise<{ route: str
   const config = loadConfig();
   const db = await getDatabase();
   const session = getSessionFromCookie(req);
-  const effectiveProfileId = session ? session.userId : (searchParams.get('id') || 'default');
+  let effectiveProfileId = 'default';
+  let currentUserAccount: any = null;
+  if (session) {
+    currentUserAccount = await getUserById(db, session.userId);
+    const requestedId = searchParams.get('id');
+    if (requestedId && (requestedId === session.userId || requestedId.startsWith(session.userId + '__'))) {
+      effectiveProfileId = requestedId;
+    } else {
+      effectiveProfileId = session.userId;
+    }
+  } else {
+    effectiveProfileId = searchParams.get('id') || 'default';
+  }
 
   let body: any = {};
   try {
@@ -270,10 +288,10 @@ export async function POST(req: Request, context: { params: Promise<{ route: str
       return res;
     }
 
-    // 4. Create Profile
+    // 4. Create Profile (Scoped to logged in user)
     if (pathname === '/api/profiles') {
       if (!body.name) return NextResponse.json({ error: 'Profile name required.' }, { status: 400 });
-      const created = createNewProfile(body.name);
+      const created = createUserProfile(body.name, session?.userId, currentUserAccount || undefined);
       return NextResponse.json({ success: true, profile: created }, { status: 201 });
     }
 
@@ -312,11 +330,11 @@ export async function POST(req: Request, context: { params: Promise<{ route: str
       });
     }
 
-    // 9. Job Action (send_email / skip / mark_applied)
+    // 9. Job Action (send_email / skip / mark_applied) - Strictly linked to active profile
     if (pathname.startsWith('/api/jobs/') && pathname.endsWith('/action')) {
       const parts = pathname.split('/');
       const jobId = parts[3];
-      const profileId = searchParams.get('id') || 'default';
+      const profileId = searchParams.get('id') || effectiveProfileId;
       const bundle = loadProfileBundle(profileId);
       const action = body.action;
 
@@ -333,14 +351,17 @@ export async function POST(req: Request, context: { params: Promise<{ route: str
           candidateProfile: bundle.candidateProfile,
           smtp: bundle.settings.smtp,
         };
-        const result = await sendPitchEmail(db, job, profileConfig, bundle.settings.smtp);
+        const result = await sendPitchEmail(db, job, profileConfig, bundle.settings.smtp, profileId);
+        if (result.success) {
+          await updateProfileJobStatus(db, profileId, jobId, 'applied');
+        }
         return NextResponse.json(result, { status: result.success ? 200 : 400 });
       } else if (action === 'skip') {
-        await updateJobStatus(db, jobId, 'skipped', 'user');
-        return NextResponse.json({ success: true, message: 'Job marked as skipped.' });
+        await updateProfileJobStatus(db, profileId, jobId, 'skipped', 'user');
+        return NextResponse.json({ success: true, message: 'Job marked as skipped for this profile.' });
       } else if (action === 'mark_applied') {
-        await updateJobStatus(db, jobId, 'applied');
-        return NextResponse.json({ success: true, message: 'Job marked as applied.' });
+        await updateProfileJobStatus(db, profileId, jobId, 'applied');
+        return NextResponse.json({ success: true, message: 'Job marked as applied for this profile.' });
       }
 
       return NextResponse.json({ error: 'Unknown action' }, { status: 400 });

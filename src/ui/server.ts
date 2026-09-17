@@ -3,15 +3,17 @@ import url from 'url';
 import fs from 'fs';
 import path from 'path';
 import { loadConfig } from '../config';
-import { getDb, getStats, getQualifiedJobsForTriage, updateJobStatus, getUserById } from '../db/database';
+import { getDb, getStats, getQualifiedJobsForTriage, getJobsForProfile, updateJobStatus, updateProfileJobStatus, getUserById } from '../db/database';
 import {
   listProfiles,
+  listProfilesForUser,
   loadProfileBundle,
   saveCandidateProfile,
   savePreferences,
   saveUserSettings,
   saveCvFile,
   createNewProfile,
+  createUserProfile,
   validateProfileCompleteness,
 } from '../config/profileManager';
 import { AI_MODELS_BY_PROVIDER } from '../types';
@@ -207,23 +209,32 @@ export async function startServer() {
         return res.end(JSON.stringify({ success: true, user }));
       }
 
-      // Resolve active profile ID: Use logged-in user ID, or requested query param, or 'default'
-      const effectiveProfileId = session ? session.userId : ((parsedUrl.query.id as string) || 'default');
-
-      // API: List Profiles
-      if (pathname === '/api/profiles' && method === 'GET') {
-        const list = listProfiles();
-        if (session && !list.includes(session.userId)) {
-          list.unshift(session.userId);
+      // Resolve active profile ID: Strictly scoped to logged-in user if authenticated
+      let effectiveProfileId = 'default';
+      let currentUserAccount: any = null;
+      if (session) {
+        currentUserAccount = await getUserById(db, session.userId);
+        const requestedId = parsedUrl.query.id as string;
+        if (requestedId && (requestedId === session.userId || requestedId.startsWith(session.userId + '__'))) {
+          effectiveProfileId = requestedId;
+        } else {
+          effectiveProfileId = session.userId;
         }
+      } else {
+        effectiveProfileId = (parsedUrl.query.id as string) || 'default';
+      }
+
+      // API: List Profiles (User Scoped)
+      if (pathname === '/api/profiles' && method === 'GET') {
+        const list = listProfilesForUser(session?.userId, currentUserAccount || undefined);
         return sendJson(res, 200, { profiles: list, active: effectiveProfileId });
       }
 
-      // API: Create Profile
+      // API: Create Profile (User Scoped)
       if (pathname === '/api/profiles' && method === 'POST') {
         const body = await parseBody(req);
         if (!body.name) return sendJson(res, 400, { error: 'Profile name required.' });
-        const created = createNewProfile(body.name);
+        const created = createUserProfile(body.name, session?.userId, currentUserAccount || undefined);
         return sendJson(res, 201, { success: true, profile: created });
       }
 
@@ -284,26 +295,19 @@ export async function startServer() {
         });
       }
 
-      // API: Get Jobs
+      // API: Get Jobs (Profile Scoped)
       if (pathname === '/api/jobs' && method === 'GET') {
         const status = (parsedUrl.query.status as string) || 'qualified';
-        let jobs;
-        if (status === 'qualified') {
-          jobs = await getQualifiedJobsForTriage(db);
-        } else if (status === 'skipped') {
-          // Only return jobs explicitly skipped by the user, not auto-discarded bulk noise
-          jobs = await db.all(`SELECT * FROM jobs WHERE status = 'skipped' AND skipped_by = 'user' ORDER BY updated_at DESC, created_at DESC LIMIT 50`);
-        } else {
-          jobs = await db.all(`SELECT * FROM jobs WHERE status = ? ORDER BY match_score DESC, created_at DESC LIMIT 50`, [status]);
-        }
+        const profileId = (parsedUrl.query.id as string) || effectiveProfileId;
+        const jobs = await getJobsForProfile(db, profileId, status);
         return sendJson(res, 200, { jobs });
       }
 
-      // API: Job Action (Send Email / Open URL / Skip)
+      // API: Job Action (Send Email / Open URL / Skip) - Profile Scoped
       if (pathname.startsWith('/api/jobs/') && pathname.endsWith('/action') && method === 'POST') {
         const parts = pathname.split('/');
         const jobId = parts[3];
-        const profileId = (parsedUrl.query.id as string) || 'default';
+        const profileId = (parsedUrl.query.id as string) || effectiveProfileId;
         const bundle = loadProfileBundle(profileId);
         const body = await parseBody(req);
         const action = body.action;
@@ -321,14 +325,17 @@ export async function startServer() {
             candidateProfile: bundle.candidateProfile,
             smtp: bundle.settings.smtp,
           };
-          const result = await sendPitchEmail(db, job, profileConfig, bundle.settings.smtp);
+          const result = await sendPitchEmail(db, job, profileConfig, bundle.settings.smtp, profileId);
+          if (result.success) {
+            await updateProfileJobStatus(db, profileId, jobId, 'applied');
+          }
           return sendJson(res, result.success ? 200 : 400, result);
         } else if (action === 'skip') {
-          await updateJobStatus(db, jobId, 'skipped', 'user');
-          return sendJson(res, 200, { success: true, message: 'Job marked as skipped.' });
+          await updateProfileJobStatus(db, profileId, jobId, 'skipped', 'user');
+          return sendJson(res, 200, { success: true, message: 'Job marked as skipped for this profile.' });
         } else if (action === 'mark_applied') {
-          await updateJobStatus(db, jobId, 'applied');
-          return sendJson(res, 200, { success: true, message: 'Job marked as applied.' });
+          await updateProfileJobStatus(db, profileId, jobId, 'applied');
+          return sendJson(res, 200, { success: true, message: 'Job marked as applied for this profile.' });
         }
 
         return sendJson(res, 400, { error: 'Unknown action' });
@@ -385,9 +392,10 @@ export async function startServer() {
         });
       }
 
-      // API: Stats
+      // API: Stats (Profile Scoped)
       if (pathname === '/api/stats' && method === 'GET') {
-        const stats = await getStats(db);
+        const profileId = (parsedUrl.query.id as string) || effectiveProfileId;
+        const stats = await getStats(db, profileId);
         return sendJson(res, 200, stats);
       }
 

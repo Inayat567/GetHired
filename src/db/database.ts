@@ -71,9 +71,27 @@ export async function getDb(dbPath: string = './jobs.db'): Promise<Database> {
       expires_at INTEGER NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS profile_jobs (
+      profile_id TEXT NOT NULL,
+      job_id TEXT NOT NULL,
+      status TEXT NOT NULL,
+      skipped_by TEXT,
+      match_score INTEGER,
+      tailored_pitch TEXT,
+      email_subject TEXT,
+      disqualification_reason TEXT,
+      applied_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (profile_id, job_id),
+      FOREIGN KEY(job_id) REFERENCES jobs(id)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
     CREATE INDEX IF NOT EXISTS idx_jobs_score ON jobs(match_score);
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+    CREATE INDEX IF NOT EXISTS idx_profile_jobs_status ON profile_jobs(profile_id, status);
+    CREATE INDEX IF NOT EXISTS idx_profile_jobs_job ON profile_jobs(job_id);
   `);
 
   // Migrate existing table if skipped_by column doesn't exist
@@ -81,6 +99,18 @@ export async function getDb(dbPath: string = './jobs.db'): Promise<Database> {
     await dbInstance.exec(`ALTER TABLE jobs ADD COLUMN skipped_by TEXT;`);
   } catch {
     // Column already exists
+  }
+
+  // Migrate any legacy applied/skipped jobs into profile_jobs for 'default' if not already populated
+  try {
+    await dbInstance.exec(`
+      INSERT OR IGNORE INTO profile_jobs (profile_id, job_id, status, skipped_by, applied_at, updated_at)
+      SELECT 'default', id, status, skipped_by, updated_at, updated_at
+      FROM jobs
+      WHERE status IN ('applied', 'skipped');
+    `);
+  } catch {
+    // Ignore migration error
   }
 
   return dbInstance;
@@ -181,25 +211,157 @@ export async function updateJobStatus(db: Database, id: string, status: JobStatu
   }
 }
 
-export async function getQualifiedJobsForTriage(db: Database): Promise<Job[]> {
+export async function updateProfileJobStatus(
+  db: Database,
+  profileId: string = 'default',
+  jobId: string,
+  status: JobStatus,
+  skippedBy?: 'user' | 'auto'
+): Promise<void> {
+  await db.run(
+    `INSERT INTO profile_jobs (profile_id, job_id, status, skipped_by, applied_at, updated_at)
+     VALUES (?, ?, ?, ?, CASE WHEN ? = 'applied' THEN CURRENT_TIMESTAMP ELSE NULL END, CURRENT_TIMESTAMP)
+     ON CONFLICT(profile_id, job_id) DO UPDATE SET
+       status = excluded.status,
+       skipped_by = excluded.skipped_by,
+       applied_at = CASE WHEN excluded.status = 'applied' THEN CURRENT_TIMESTAMP ELSE profile_jobs.applied_at END,
+       updated_at = CURRENT_TIMESTAMP`,
+    [profileId, jobId, status, status === 'skipped' ? (skippedBy || 'user') : null, status]
+  );
+}
+
+export async function getQualifiedJobsForTriage(db: Database, profileId: string = 'default'): Promise<Job[]> {
   const rows = await db.all(
-    `SELECT * FROM jobs 
-     WHERE status = 'qualified' OR (status = 'pending' AND match_score >= 70)
-     ORDER BY match_score DESC, created_at DESC`
+    `SELECT j.*,
+       COALESCE(pj.status, j.status) as status,
+       COALESCE(pj.skipped_by, j.skipped_by) as skipped_by,
+       COALESCE(pj.match_score, j.match_score) as match_score,
+       COALESCE(pj.tailored_pitch, j.tailored_pitch) as tailored_pitch,
+       COALESCE(pj.email_subject, j.email_subject) as email_subject,
+       COALESCE(pj.disqualification_reason, j.disqualification_reason) as disqualification_reason
+     FROM jobs j
+     LEFT JOIN profile_jobs pj ON j.id = pj.job_id AND pj.profile_id = ?
+     WHERE (COALESCE(pj.status, j.status) = 'qualified' OR (COALESCE(pj.status, j.status) = 'pending' AND COALESCE(pj.match_score, j.match_score) >= 70))
+       AND COALESCE(pj.status, j.status) NOT IN ('skipped', 'applied')
+     ORDER BY COALESCE(pj.match_score, j.match_score) DESC, j.created_at DESC
+     LIMIT 50`,
+    [profileId]
   );
   return rows.map((r) => ({
     ...r,
     should_apply: Boolean(r.should_apply),
-    key_matching_skills: r.key_matching_skills ? JSON.parse(r.key_matching_skills) : [],
+    key_matching_skills: r.key_matching_skills
+      ? (typeof r.key_matching_skills === 'string' ? JSON.parse(r.key_matching_skills) : r.key_matching_skills)
+      : [],
   }));
 }
 
-export async function getStats(db: Database) {
+export async function getJobsForProfile(db: Database, profileId: string = 'default', status: string = 'qualified'): Promise<Job[]> {
+  if (status === 'qualified') {
+    return getQualifiedJobsForTriage(db, profileId);
+  }
+
+  if (status === 'applied') {
+    const rows = await db.all(
+      `SELECT j.*,
+         'applied' as status,
+         pj.applied_at,
+         COALESCE(pj.tailored_pitch, j.tailored_pitch) as tailored_pitch,
+         COALESCE(pj.email_subject, j.email_subject) as email_subject,
+         COALESCE(pj.match_score, j.match_score) as match_score
+       FROM profile_jobs pj
+       JOIN jobs j ON pj.job_id = j.id
+       WHERE pj.profile_id = ? AND pj.status = 'applied'
+       ORDER BY pj.updated_at DESC, pj.applied_at DESC
+       LIMIT 50`,
+      [profileId]
+    );
+    return rows.map((r) => ({
+      ...r,
+      should_apply: Boolean(r.should_apply),
+      key_matching_skills: r.key_matching_skills
+        ? (typeof r.key_matching_skills === 'string' ? JSON.parse(r.key_matching_skills) : r.key_matching_skills)
+        : [],
+    }));
+  }
+
+  if (status === 'skipped') {
+    const rows = await db.all(
+      `SELECT j.*,
+         'skipped' as status,
+         pj.skipped_by,
+         COALESCE(pj.match_score, j.match_score) as match_score
+       FROM profile_jobs pj
+       JOIN jobs j ON pj.job_id = j.id
+       WHERE pj.profile_id = ? AND pj.status = 'skipped' AND pj.skipped_by = 'user'
+       ORDER BY pj.updated_at DESC
+       LIMIT 50`,
+      [profileId]
+    );
+    return rows.map((r) => ({
+      ...r,
+      should_apply: Boolean(r.should_apply),
+      key_matching_skills: r.key_matching_skills
+        ? (typeof r.key_matching_skills === 'string' ? JSON.parse(r.key_matching_skills) : r.key_matching_skills)
+        : [],
+    }));
+  }
+
+  // Pending status
+  const rows = await db.all(
+    `SELECT j.*,
+       COALESCE(pj.status, j.status) as status,
+       COALESCE(pj.match_score, j.match_score) as match_score
+     FROM jobs j
+     LEFT JOIN profile_jobs pj ON j.id = pj.job_id AND pj.profile_id = ?
+     WHERE COALESCE(pj.status, j.status) = ?
+     ORDER BY COALESCE(pj.match_score, j.match_score) DESC, j.created_at DESC
+     LIMIT 50`,
+    [profileId, status]
+  );
+  return rows.map((r) => ({
+    ...r,
+    should_apply: Boolean(r.should_apply),
+    key_matching_skills: r.key_matching_skills
+      ? (typeof r.key_matching_skills === 'string' ? JSON.parse(r.key_matching_skills) : r.key_matching_skills)
+      : [],
+  }));
+}
+
+export async function getStats(db: Database, profileId: string = 'default') {
   const total = (await db.get('SELECT COUNT(*) as count FROM jobs'))?.count || 0;
-  const qualified = (await db.get("SELECT COUNT(*) as count FROM jobs WHERE status = 'qualified'"))?.count || 0;
-  const applied = (await db.get("SELECT COUNT(*) as count FROM jobs WHERE status = 'applied'"))?.count || 0;
-  const skipped = (await db.get("SELECT COUNT(*) as count FROM jobs WHERE status = 'skipped' AND skipped_by = 'user'"))?.count || 0;
-  const pending = (await db.get("SELECT COUNT(*) as count FROM jobs WHERE status = 'pending'"))?.count || 0;
+
+  const qualifiedRow = await db.get(
+    `SELECT COUNT(*) as count
+     FROM jobs j
+     LEFT JOIN profile_jobs pj ON j.id = pj.job_id AND pj.profile_id = ?
+     WHERE (COALESCE(pj.status, j.status) = 'qualified' OR (COALESCE(pj.status, j.status) = 'pending' AND COALESCE(pj.match_score, j.match_score) >= 70))
+       AND COALESCE(pj.status, j.status) NOT IN ('skipped', 'applied')`,
+    [profileId]
+  );
+  const qualified = qualifiedRow?.count || 0;
+
+  const appliedRow = await db.get(
+    `SELECT COUNT(*) as count FROM profile_jobs WHERE profile_id = ? AND status = 'applied'`,
+    [profileId]
+  );
+  const applied = appliedRow?.count || 0;
+
+  const skippedRow = await db.get(
+    `SELECT COUNT(*) as count FROM profile_jobs WHERE profile_id = ? AND status = 'skipped' AND skipped_by = 'user'`,
+    [profileId]
+  );
+  const skipped = skippedRow?.count || 0;
+
+  const pendingRow = await db.get(
+    `SELECT COUNT(*) as count
+     FROM jobs j
+     LEFT JOIN profile_jobs pj ON j.id = pj.job_id AND pj.profile_id = ?
+     WHERE COALESCE(pj.status, j.status) = 'pending'`,
+    [profileId]
+  );
+  const pending = pendingRow?.count || 0;
+
   return { total, qualified, applied, skipped, pending };
 }
 

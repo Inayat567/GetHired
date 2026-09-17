@@ -152,56 +152,57 @@
       </a>
 
       <!-- Right Header Actions -->
-      <div class="flex items-center space-x-3 sm:space-x-4">
+      <div class="flex items-center space-x-2 sm:space-x-3">
         <!-- Navigation to Home & Creator -->
-        <a href="/" target="_top" class="text-xs text-slate-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-slate-800 transition hidden sm:flex items-center space-x-1.5">
+        <a href="/" target="_top" class="text-xs text-slate-400 hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-slate-800 transition hidden md:flex items-center space-x-1.5">
           <i class="fa-solid fa-arrow-left text-xs"></i>
           <span>Home</span>
         </a>
-        <a href="/creator" target="_top" class="text-xs font-semibold text-emerald-400 hover:text-emerald-300 px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 transition hidden sm:flex items-center space-x-1.5">
+        <a href="/creator" target="_top" class="text-xs font-semibold text-emerald-400 hover:text-emerald-300 px-2.5 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 transition hidden md:flex items-center space-x-1.5">
           <i class="fa-solid fa-user-astronaut text-xs"></i>
           <span>Meet Creator</span>
         </a>
 
         <!-- Active User Profile Dropdown -->
-        <div class="flex items-center space-x-2 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">
-          <i class="fa-solid fa-user-astronaut text-indigo-400 text-xs"></i>
-          <span class="text-xs text-slate-400 font-medium hidden sm:inline">Profile:</span>
-          <select id="profileSelect" onchange="switchProfile(this.value)" class="bg-transparent text-sm text-white font-medium focus:outline-none cursor-pointer">
-            <option value="default">default</option>
+        <div class="flex items-center space-x-1.5 bg-slate-800/90 px-2.5 py-1.5 rounded-lg border border-slate-700 max-w-[210px] sm:max-w-[280px]">
+          <i class="fa-solid fa-id-badge text-indigo-400 text-xs flex-shrink-0"></i>
+          <span class="text-xs text-slate-400 font-medium hidden lg:inline flex-shrink-0">Profile:</span>
+          <select id="profileSelect" onchange="switchProfile(this.value)" class="bg-transparent text-xs sm:text-sm text-white font-medium focus:outline-none cursor-pointer truncate flex-1 min-w-0">
+            <option value="default">Loading...</option>
           </select>
-          <button onclick="promptNewProfile()" title="Create New Bot / User Persona" class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded ml-1 transition">
-            <i class="fa-solid fa-plus"></i> <span class="hidden sm:inline">New</span>
+          <button onclick="promptNewProfile()" title="Create New Persona Profile" class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-0.5 rounded flex-shrink-0 transition flex items-center space-x-1 cursor-pointer">
+            <i class="fa-solid fa-plus text-[10px]"></i>
+            <span class="hidden sm:inline text-[11px]">New</span>
           </button>
         </div>
 
         <!-- Quick AI Badge -->
-        <div id="headerAiBadge" onclick="switchTab('settings')" class="hidden md:flex items-center space-x-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 cursor-pointer transition">
+        <div id="headerAiBadge" onclick="switchTab('settings')" class="hidden xl:flex items-center space-x-1.5 text-xs bg-slate-800/90 hover:bg-slate-700 text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-700 cursor-pointer transition">
           <i class="fa-solid fa-brain text-emerald-400"></i>
-          <span id="headerAiText">OpenAI (gpt-4o-mini)</span>
+          <span id="headerAiText">OpenAI</span>
         </div>
 
         <!-- LinkedIn Status Badge -->
-        <div id="headerLinkedInBadge" onclick="switchTab('settings')" class="hidden sm:flex items-center space-x-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 cursor-pointer transition">
+        <div id="headerLinkedInBadge" onclick="switchTab('settings')" class="hidden 2xl:flex items-center space-x-1.5 text-xs bg-slate-800/90 hover:bg-slate-700 text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-700 cursor-pointer transition">
           <i class="fa-brands fa-linkedin text-slate-400" id="headerLinkedInIcon"></i>
-          <span id="headerLinkedInText">LinkedIn: Checking...</span>
+          <span id="headerLinkedInText">LinkedIn</span>
         </div>
 
         <!-- User Authentication Header Component -->
         <div id="authHeaderContainer" class="flex items-center">
           <!-- Unauthenticated State Button -->
-          <button id="headerSignInBtn" onclick="openAuthModal()" class="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg shadow-sm transition">
+          <button id="headerSignInBtn" onclick="openAuthModal()" class="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm transition">
             <i class="fa-solid fa-right-to-bracket"></i>
             <span>Sign In</span>
           </button>
 
           <!-- Authenticated State User Menu -->
-          <div id="headerUserMenu" class="hidden flex items-center space-x-2.5">
-            <div class="flex items-center space-x-2 bg-slate-800 py-1 px-2.5 rounded-lg border border-slate-700">
+          <div id="headerUserMenu" class="hidden flex items-center space-x-2">
+            <div class="flex items-center space-x-2 bg-slate-800/90 py-1 px-2.5 rounded-lg border border-slate-700">
               <img id="headerUserAvatar" src="/logo.svg" alt="User Avatar" class="w-6 h-6 rounded-full object-cover border border-slate-600" />
-              <span id="headerUserName" class="text-xs font-semibold text-white max-w-[110px] truncate">User</span>
+              <span id="headerUserName" class="text-xs font-semibold text-white max-w-[90px] sm:max-w-[130px] truncate">User</span>
             </div>
-            <button onclick="handleLogout()" title="Sign Out" class="text-slate-400 hover:text-rose-400 text-xs px-2 py-1.5 rounded-lg hover:bg-slate-800 transition">
+            <button onclick="handleLogout()" title="Sign Out" class="text-slate-400 hover:text-rose-400 text-xs px-2 py-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer">
               <i class="fa-solid fa-power-off"></i>
             </button>
           </div>
@@ -215,31 +216,31 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row md:items-center justify-between py-2.5 gap-3">
       <!-- Tabs Navigation -->
       <nav class="flex space-x-1 sm:space-x-2 overflow-x-auto pb-1 md:pb-0">
-        <button onclick="switchTab('triage')" id="tabBtn-triage" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold bg-indigo-50 text-indigo-700 flex items-center space-x-2">
+        <button onclick="switchTab('triage')" id="tabBtn-triage" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold bg-indigo-600 text-white shadow-sm shadow-indigo-500/20 flex items-center space-x-2 transition">
           <i class="fa-solid fa-list-check"></i>
           <span>Job Triage</span>
         </button>
-        <button onclick="switchTab('settings')" id="tabBtn-settings" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center space-x-2">
+        <button onclick="switchTab('settings')" id="tabBtn-settings" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-800/80 flex items-center space-x-2 transition">
           <i class="fa-solid fa-microchip"></i>
           <span>AI & SMTP Keys</span>
         </button>
-        <button onclick="switchTab('preferences')" id="tabBtn-preferences" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center space-x-2">
+        <button onclick="switchTab('preferences')" id="tabBtn-preferences" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-800/80 flex items-center space-x-2 transition">
           <i class="fa-solid fa-sliders"></i>
           <span>Preferences & Filters</span>
         </button>
-        <button onclick="switchTab('profile')" id="tabBtn-profile" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center space-x-2">
+        <button onclick="switchTab('profile')" id="tabBtn-profile" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-800/80 flex items-center space-x-2 transition">
           <i class="fa-solid fa-address-card"></i>
           <span>Candidate Profile & CV</span>
         </button>
       </nav>
 
       <!-- Stats Pill Bar -->
-      <div id="statsBar" class="flex items-center space-x-2 text-xs text-slate-500 overflow-x-auto pb-1 md:pb-0">
-        <span class="bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 whitespace-nowrap">Total: <strong id="statTotal" class="text-slate-800 font-bold">0</strong></span>
-        <span class="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md border border-emerald-200 whitespace-nowrap">Qualified: <strong id="statQualified" class="font-bold">0</strong></span>
-        <span class="bg-amber-50 text-amber-700 px-2.5 py-1 rounded-md border border-amber-200 whitespace-nowrap">Pending: <strong id="statPending" class="font-bold">0</strong></span>
-        <span class="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md border border-blue-200 whitespace-nowrap">Applied: <strong id="statApplied" class="font-bold">0</strong></span>
-        <span class="bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 whitespace-nowrap">Skipped: <strong id="statSkipped" class="font-bold">0</strong></span>
+      <div id="statsBar" class="flex items-center space-x-2 text-xs overflow-x-auto pb-1 md:pb-0">
+        <span class="bg-slate-800 text-slate-300 px-2.5 py-1 rounded-md border border-slate-700 whitespace-nowrap">Total: <strong id="statTotal" class="text-white font-bold">0</strong></span>
+        <span class="bg-emerald-950/70 text-emerald-400 px-2.5 py-1 rounded-md border border-emerald-800/60 whitespace-nowrap">Qualified: <strong id="statQualified" class="font-bold">0</strong></span>
+        <span class="bg-amber-950/70 text-amber-400 px-2.5 py-1 rounded-md border border-amber-800/60 whitespace-nowrap">Pending: <strong id="statPending" class="font-bold">0</strong></span>
+        <span class="bg-blue-950/70 text-blue-400 px-2.5 py-1 rounded-md border border-blue-800/60 whitespace-nowrap">Applied: <strong id="statApplied" class="font-bold">0</strong></span>
+        <span class="bg-slate-800/70 text-slate-400 px-2.5 py-1 rounded-md border border-slate-700 whitespace-nowrap">Skipped: <strong id="statSkipped" class="font-bold">0</strong></span>
       </div>
     </div>
   </div>
@@ -253,26 +254,26 @@
     <div id="tab-triage" class="tab-content block">
 
       <!-- Configuration Incomplete Alert Banner -->
-      <div id="missingConfigBanner" class="hidden mb-6 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300/80 rounded-2xl p-5 sm:p-6 shadow-sm">
+      <div id="missingConfigBanner" class="hidden mb-6 bg-amber-950/40 border-2 border-amber-500/50 rounded-2xl p-5 sm:p-6 shadow-lg shadow-amber-500/5">
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div class="flex items-start space-x-3.5">
-            <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-xl flex-shrink-0 mt-0.5">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center text-xl flex-shrink-0 mt-0.5">
               <i class="fa-solid fa-triangle-exclamation"></i>
             </div>
             <div>
-              <h3 class="text-base font-bold text-amber-950">Setup Required Before Job Search</h3>
-              <p class="text-xs text-amber-800 mt-0.5">Please provide the following required details so GetHired can match opportunities and generate tailored outreach:</p>
+              <h3 class="text-base font-bold text-amber-300">Setup Required Before Job Search</h3>
+              <p class="text-xs text-amber-200/80 mt-0.5">Please provide the following required details so GetHired can match opportunities and generate tailored outreach:</p>
               <div id="missingConfigBadges" class="flex flex-wrap gap-2 mt-2.5">
                 <!-- Badges dynamically inserted here -->
               </div>
             </div>
           </div>
           <div class="flex flex-wrap items-center gap-2 flex-shrink-0">
-            <button type="button" onclick="switchTab('settings')" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition shadow-sm flex items-center space-x-1.5">
+            <button type="button" onclick="switchTab('settings')" class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition shadow-sm flex items-center space-x-1.5 cursor-pointer">
               <i class="fa-solid fa-key"></i>
               <span>Add AI Key</span>
             </button>
-            <button type="button" onclick="switchTab('profile')" class="bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold px-3.5 py-2 rounded-xl transition shadow-sm flex items-center space-x-1.5">
+            <button type="button" onclick="switchTab('profile')" class="bg-slate-900 hover:bg-slate-800 text-amber-300 border border-amber-500/40 text-xs font-bold px-3.5 py-2 rounded-xl transition shadow-sm flex items-center space-x-1.5 cursor-pointer">
               <i class="fa-solid fa-user-pen"></i>
               <span>Update Profile & CV</span>
             </button>
@@ -315,15 +316,15 @@
       <!-- Status Filter Tabs & Header -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div class="flex items-center space-x-2">
-          <h3 class="text-lg font-bold text-slate-900">Job Opportunities</h3>
-          <span id="jobCountBadge" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700">0</span>
+          <h3 class="text-lg font-bold text-white">Job Opportunities</h3>
+          <span id="jobCountBadge" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">0</span>
         </div>
 
-        <div class="flex space-x-1.5 bg-slate-100 p-1 rounded-lg border border-slate-200">
-          <button onclick="filterJobs('qualified')" class="status-filter px-3 py-1 text-xs font-semibold rounded-md bg-white text-indigo-600 shadow-sm" data-status="qualified">Qualified</button>
-          <button onclick="filterJobs('pending')" class="status-filter px-3 py-1 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900" data-status="pending">Pending</button>
-          <button onclick="filterJobs('applied')" class="status-filter px-3 py-1 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900" data-status="applied">Applied</button>
-          <button onclick="filterJobs('skipped')" class="status-filter px-3 py-1 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900" data-status="skipped">Skipped</button>
+        <div class="flex space-x-1.5 bg-slate-900 p-1 rounded-lg border border-slate-800">
+          <button onclick="filterJobs('qualified')" class="status-filter px-3 py-1 text-xs font-semibold rounded-md bg-indigo-600 text-white shadow-sm transition cursor-pointer" data-status="qualified">Qualified</button>
+          <button onclick="filterJobs('pending')" class="status-filter px-3 py-1 text-xs font-semibold rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer" data-status="pending">Pending</button>
+          <button onclick="filterJobs('applied')" class="status-filter px-3 py-1 text-xs font-semibold rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer" data-status="applied">Applied</button>
+          <button onclick="filterJobs('skipped')" class="status-filter px-3 py-1 text-xs font-semibold rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer" data-status="skipped">Skipped</button>
         </div>
       </div>
 
@@ -998,12 +999,14 @@
       document.getElementById('tab-' + tabId).classList.remove('hidden');
 
       document.querySelectorAll('.tab-btn').forEach(el => {
-        el.classList.remove('bg-indigo-50', 'text-indigo-700');
-        el.classList.add('text-slate-600', 'hover:text-slate-900', 'hover:bg-slate-100');
+        el.classList.remove('bg-indigo-600', 'text-white', 'shadow-sm', 'shadow-indigo-500/20');
+        el.classList.add('text-slate-400', 'hover:text-white', 'hover:bg-slate-800/80');
       });
       const activeBtn = document.getElementById('tabBtn-' + tabId);
-      activeBtn.classList.add('bg-indigo-50', 'text-indigo-700');
-      activeBtn.classList.remove('text-slate-600', 'hover:text-slate-900', 'hover:bg-slate-100');
+      if (activeBtn) {
+        activeBtn.classList.add('bg-indigo-600', 'text-white', 'shadow-sm', 'shadow-indigo-500/20');
+        activeBtn.classList.remove('text-slate-400', 'hover:text-white', 'hover:bg-slate-800/80');
+      }
     }
 
     async function loadAiModels() {
@@ -1082,33 +1085,47 @@
         const data = await res.json();
         const select = document.getElementById('profileSelect');
         select.innerHTML = '';
-        data.profiles.forEach(p => {
+        const list = data.profiles || [];
+        list.forEach(p => {
           const opt = document.createElement('option');
-          opt.value = p;
-          opt.textContent = p;
-          if (p === activeProfile) opt.selected = true;
+          const id = typeof p === 'string' ? p : p.id;
+          const label = typeof p === 'string' ? p : (p.name || p.title || p.id);
+          opt.value = id;
+          opt.textContent = label;
+          opt.className = 'bg-slate-900 text-white py-1';
+          if (id === activeProfile) opt.selected = true;
           select.appendChild(opt);
         });
+
+        if (list.length > 0) {
+          const exists = list.some(p => (typeof p === 'string' ? p : p.id) === activeProfile);
+          if (!exists) {
+            activeProfile = typeof list[0] === 'string' ? list[0] : list[0].id;
+            select.value = activeProfile;
+          }
+        }
       } catch (err) {
         console.error('Error loading profiles:', err);
       }
     }
 
     async function promptNewProfile() {
-      const name = prompt('Enter a new user / bot profile ID (e.g., "alex_contract"):');
-      if (!name) return;
+      const name = prompt('Enter a persona title for this profile (e.g., "React Native Lead", "Fullstack AI Specialist", "Contract / Freelance"):');
+      if (!name || !name.trim()) return;
       try {
         const res = await fetch('/api/profiles', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name }),
+          body: JSON.stringify({ name: name.trim() }),
         });
         const data = await res.json();
-        if (data.success) {
-          showToast(`Profile "${data.profile.id}" created!`);
+        if (data.success && data.profile) {
+          showToast(`Created persona: "${name.trim()}"`);
           activeProfile = data.profile.id;
           await loadProfileList();
           await loadProfileData(activeProfile);
+          await loadStats();
+          await loadJobs(currentStatusFilter);
         } else {
           showToast(data.error || 'Failed to create profile', true);
         }
@@ -1119,8 +1136,12 @@
 
     async function switchProfile(profileId) {
       activeProfile = profileId;
-      showToast(`Switched to profile: ${profileId}`);
+      const select = document.getElementById('profileSelect');
+      const selectedOption = select.options[select.selectedIndex];
+      const displayName = selectedOption ? selectedOption.textContent : profileId;
+      showToast(`Switched to: ${displayName}`);
       await loadProfileData(profileId);
+      await loadStats();
       await loadJobs(currentStatusFilter);
     }
 
@@ -1293,6 +1314,7 @@
         const data = await res.json();
         if (data.success) {
           showToast('Candidate profile updated!');
+          await loadProfileList();
           await checkReadinessAndRenderBanner();
         } else {
           showToast(data.error || 'Failed to save profile', true);
@@ -1410,7 +1432,7 @@
 
     async function loadStats() {
       try {
-        const res = await fetch('/api/stats');
+        const res = await fetch(`/api/stats?id=${encodeURIComponent(activeProfile)}`);
         const s = await res.json();
         document.getElementById('statTotal').innerText = s.total || 0;
         document.getElementById('statQualified').innerText = s.qualified || 0;
@@ -1426,9 +1448,9 @@
       currentStatusFilter = status;
       document.querySelectorAll('.status-filter').forEach(btn => {
         if (btn.dataset.status === status) {
-          btn.className = 'status-filter px-3 py-1 text-xs font-semibold rounded-md bg-white text-indigo-600 shadow-sm';
+          btn.className = 'status-filter px-3 py-1 text-xs font-semibold rounded-md bg-indigo-600 text-white shadow-sm transition cursor-pointer';
         } else {
-          btn.className = 'status-filter px-3 py-1 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900';
+          btn.className = 'status-filter px-3 py-1 text-xs font-semibold rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer';
         }
       });
       await loadJobs(status);
@@ -1444,7 +1466,7 @@
       `;
 
       try {
-        const res = await fetch(`/api/jobs?status=${encodeURIComponent(status)}`);
+        const res = await fetch(`/api/jobs?status=${encodeURIComponent(status)}&id=${encodeURIComponent(activeProfile)}`);
         const data = await res.json();
         const jobs = data.jobs || [];
 

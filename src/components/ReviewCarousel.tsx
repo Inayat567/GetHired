@@ -170,10 +170,10 @@ export default function ReviewCarousel() {
             "{prevReview.quote}"
           </p>
           <div className="mt-4 flex items-center space-x-2.5 pt-3 border-t border-slate-800/60">
-            <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${prevReview.avatarGradient} flex items-center justify-center text-xs font-bold text-white`}>
+            <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${prevReview.avatarGradient} flex items-center justify-center text-xs font-bold text-white flex-shrink-0`}>
               {prevReview.initials}
             </div>
-            <div className="truncate">
+            <div className="min-w-0 flex-1">
               <div className="font-bold text-white text-xs truncate">{prevReview.client}</div>
               <div className="text-[10px] text-slate-500 truncate">{prevReview.project}</div>
             </div>
@@ -216,8 +216,8 @@ export default function ReviewCarousel() {
           </blockquote>
 
           {/* Client Details Footer */}
-          <div className="mt-6 pt-5 border-t border-slate-800/80 flex items-center justify-between gap-3">
-            <div className="flex items-center space-x-3.5">
+          <div className="mt-6 pt-5 border-t border-slate-800/80 flex items-center justify-between gap-4">
+            <div className="flex items-center space-x-3.5 min-w-0 flex-1">
               <div
                 className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${currentReview.avatarGradient} p-0.5 shadow-lg flex-shrink-0`}
               >
@@ -226,24 +226,25 @@ export default function ReviewCarousel() {
                 </div>
               </div>
 
-              <div>
-                <div className="font-bold text-white text-sm sm:text-base flex items-center space-x-2">
-                  <span>{currentReview.client}</span>
-                  <span className="text-xs text-slate-400 font-normal">
+              <div className="min-w-0 flex-1">
+                <div className="font-bold text-white text-sm sm:text-base flex items-center space-x-2 truncate">
+                  <span className="truncate">{currentReview.client}</span>
+                  <span className="text-xs text-slate-400 font-normal flex-shrink-0">
                     • {currentReview.location}
                   </span>
                 </div>
-                <div className="text-xs text-slate-400 max-w-sm truncate mt-0.5">
+                <div className="text-xs text-slate-400 truncate mt-0.5">
                   {currentReview.project}
                 </div>
               </div>
             </div>
 
-            <div className="text-right flex-shrink-0 hidden sm:block">
-              <div className="text-xs font-bold text-emerald-400">
-                {currentReview.earnings || 'Verified Contract'}
+            <div className="text-right flex-shrink-0 pl-2">
+              <div className="text-xs font-bold text-blue-400 flex items-center justify-end space-x-1.5 whitespace-nowrap">
+                <i className="fa-solid fa-circle-check text-blue-400 text-xs"></i>
+                <span>Verified Client</span>
               </div>
-              <div className="text-[11px] text-slate-500">{currentReview.date}</div>
+              <div className="text-[11px] text-slate-500 mt-0.5">{currentReview.date}</div>
             </div>
           </div>
         </div>
@@ -267,10 +268,10 @@ export default function ReviewCarousel() {
             "{nextReview.quote}"
           </p>
           <div className="mt-4 flex items-center space-x-2.5 pt-3 border-t border-slate-800/60">
-            <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${nextReview.avatarGradient} flex items-center justify-center text-xs font-bold text-white`}>
+            <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${nextReview.avatarGradient} flex items-center justify-center text-xs font-bold text-white flex-shrink-0`}>
               {nextReview.initials}
             </div>
-            <div className="truncate">
+            <div className="min-w-0 flex-1">
               <div className="font-bold text-white text-xs truncate">{nextReview.client}</div>
               <div className="text-[10px] text-slate-500 truncate">{nextReview.project}</div>
             </div>

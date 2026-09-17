@@ -3,7 +3,7 @@ import nodemailer from 'nodemailer';
 import { Database } from 'sqlite';
 import { AppConfig } from '../config';
 import { Job } from '../types';
-import { logOutreach, updateJobStatus } from '../db/database';
+import { logOutreach, updateJobStatus, updateProfileJobStatus } from '../db/database';
 
 import { UserSettings } from '../types';
 
@@ -42,7 +42,8 @@ export async function sendPitchEmail(
   db: Database,
   job: Job,
   config: AppConfig,
-  smtpOverrides?: UserSettings['smtp']
+  smtpOverrides?: UserSettings['smtp'],
+  profileId?: string
 ): Promise<{ success: boolean; message: string }> {
   if (!job.recruiter_email) {
     return { success: false, message: 'No recruiter email address found for this job.' };
@@ -79,6 +80,9 @@ export async function sendPitchEmail(
     // Record outreach in database
     await logOutreach(db, job.id, job.recruiter_email, subject, 'sent');
     await updateJobStatus(db, job.id, 'applied');
+    if (profileId) {
+      await updateProfileJobStatus(db, profileId, job.id, 'applied');
+    }
 
     return {
       success: true,

@@ -40,6 +40,13 @@ export function ensureProfilesDirectory() {
   }
 }
 
+export interface ProfileSummary {
+  id: string;
+  name: string;
+  title: string;
+  isPrimary: boolean;
+}
+
 export function listProfiles(): string[] {
   ensureProfilesDirectory();
   const entries = fs.readdirSync(PROFILES_ROOT, { withFileTypes: true });
@@ -48,6 +55,84 @@ export function listProfiles(): string[] {
     list.unshift('default');
   }
   return list;
+}
+
+export function listProfilesForUser(
+  userId?: string,
+  userAccount?: { name?: string; email?: string }
+): ProfileSummary[] {
+  ensureProfilesDirectory();
+
+  // If no user is logged in, only expose default template
+  if (!userId) {
+    const defaultBundle = loadProfileBundle('default');
+    return [
+      {
+        id: 'default',
+        name: defaultBundle.candidateProfile?.name || 'Default Candidate',
+        title: defaultBundle.candidateProfile?.current_title || 'React Native Developer',
+        isPrimary: true,
+      },
+    ];
+  }
+
+  // Ensure user's primary profile directory exists
+  const userPrimaryPaths = getProfilePaths(userId);
+  if (!fs.existsSync(userPrimaryPaths.profilePath)) {
+    const defaultBundle = loadProfileBundle('default');
+    const seededProfile: CandidateProfile = {
+      ...defaultBundle.candidateProfile,
+      name: userAccount?.name || defaultBundle.candidateProfile?.name || 'Candidate',
+      email: userAccount?.email || defaultBundle.candidateProfile?.email || 'dev@example.com',
+    };
+    saveCandidateProfile(userId, seededProfile);
+    savePreferences(userId, defaultBundle.preferences);
+    if (fs.existsSync(getProfilePaths('default').cvPath)) {
+      fs.copyFileSync(getProfilePaths('default').cvPath, userPrimaryPaths.cvPath);
+    }
+  }
+
+  const entries = fs.readdirSync(PROFILES_ROOT, { withFileTypes: true });
+  // Strictly filter: ONLY the logged-in user's primary directory or subprofiles (e.g. userId__slug)
+  const userDirs = entries
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name)
+    .filter((name) => name === userId || name.startsWith(`${userId}__`));
+
+  if (!userDirs.includes(userId)) {
+    userDirs.unshift(userId);
+  }
+
+  return userDirs.map((dirName) => {
+    const isPrimary = dirName === userId;
+    let displayName = '';
+    let displayTitle = '';
+
+    try {
+      const bundle = loadProfileBundle(dirName);
+      displayTitle = bundle.candidateProfile?.current_title || '';
+      const cName = bundle.candidateProfile?.name || userAccount?.name || 'Candidate';
+
+      if (isPrimary) {
+        displayName = displayTitle ? `${cName} (${displayTitle})` : `${cName} (Primary)`;
+      } else {
+        const slugPart = dirName.split('__')[1] || '';
+        const humanSlug = slugPart
+          .replace(/[-_]+/g, ' ')
+          .replace(/\b\w/g, (l) => l.toUpperCase());
+        displayName = bundle.candidateProfile?.current_title || humanSlug || 'Persona Profile';
+      }
+    } catch {
+      displayName = isPrimary ? (userAccount?.name || 'Primary Profile') : 'Custom Persona';
+    }
+
+    return {
+      id: dirName,
+      name: displayName,
+      title: displayTitle,
+      isPrimary,
+    };
+  });
 }
 
 export function getProfilePaths(profileId: string = 'default') {
@@ -180,6 +265,45 @@ export function saveCvFile(profileId: string, buffer: Buffer) {
     if (!fs.existsSync(assetsDir)) fs.mkdirSync(assetsDir, { recursive: true });
     fs.writeFileSync(path.join(assetsDir, 'cv.pdf'), buffer);
   }
+}
+
+export function createUserProfile(
+  personaName: string,
+  userId?: string,
+  userAccount?: { name?: string; email?: string }
+): UserProfileBundle {
+  const cleanName = personaName.trim();
+  if (!cleanName) throw new Error('Profile name cannot be empty.');
+
+  const slug = cleanName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'persona';
+
+  const newProfileId = userId ? `${userId}__${slug}` : slug;
+
+  // Use user's primary profile or default profile as template
+  const baseProfileId = userId || 'default';
+  const baseBundle = loadProfileBundle(baseProfileId);
+
+  const newCandidateProfile: CandidateProfile = {
+    ...baseBundle.candidateProfile,
+    name: userAccount?.name || baseBundle.candidateProfile?.name || 'Candidate',
+    email: userAccount?.email || baseBundle.candidateProfile?.email || 'dev@example.com',
+    current_title: cleanName,
+  };
+
+  saveCandidateProfile(newProfileId, newCandidateProfile);
+  savePreferences(newProfileId, baseBundle.preferences);
+
+  // Copy CV file if exists in base profile
+  const basePaths = getProfilePaths(baseProfileId);
+  const newPaths = getProfilePaths(newProfileId);
+  if (fs.existsSync(basePaths.cvPath)) {
+    fs.copyFileSync(basePaths.cvPath, newPaths.cvPath);
+  }
+
+  return loadProfileBundle(newProfileId);
 }
 
 export function createNewProfile(newProfileId: string): UserProfileBundle {
