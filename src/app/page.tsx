@@ -7,8 +7,29 @@ import LoginModal from '@/components/LoginModal';
 export default function HomePage() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [toastMessage, setToastMessage] = useState<{ title: string; body: string; type: 'info' | 'warning' } | null>(null);
 
   useEffect(() => {
+    // Check URL parameters for session notices from middleware
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('session_expired') === 'true') {
+      setToastMessage({
+        title: 'Session Expired',
+        body: 'Your workspace session has expired. Please sign in to continue where you left off.',
+        type: 'warning',
+      });
+      setIsLoginModalOpen(true);
+      window.history.replaceState({}, '', '/');
+    } else if (params.get('auth_required') === 'true') {
+      setToastMessage({
+        title: 'Sign In Required',
+        body: 'Please sign in with Google, GitHub, or Email OTP to access your GetHired Copilot workspace.',
+        type: 'info',
+      });
+      setIsLoginModalOpen(true);
+      window.history.replaceState({}, '', '/');
+    }
+
     fetch('/api/auth/me')
       .then((r) => r.json())
       .then((data) => {
@@ -29,6 +50,27 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white relative overflow-x-hidden">
+      {/* Toast Notification Alert */}
+      {toastMessage && (
+        <div className="fixed top-24 right-4 sm:right-8 z-50 max-w-md w-full">
+          <div className="p-4 rounded-2xl bg-slate-900/95 border border-amber-500/50 shadow-2xl text-slate-100 flex items-start space-x-3.5 backdrop-blur-md">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0 text-base border border-amber-500/30">
+              <i className="fa-solid fa-lock"></i>
+            </div>
+            <div className="flex-1 pr-2">
+              <h4 className="text-sm font-bold text-white">{toastMessage.title}</h4>
+              <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">{toastMessage.body}</p>
+            </div>
+            <button
+              onClick={() => setToastMessage(null)}
+              className="text-slate-400 hover:text-white transition p-1"
+            >
+              <i className="fa-solid fa-xmark text-xs"></i>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Top Ambient Glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-gradient-to-b from-indigo-600/20 via-purple-600/10 to-transparent blur-3xl pointer-events-none" />
 

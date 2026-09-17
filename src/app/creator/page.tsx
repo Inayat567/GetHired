@@ -1,18 +1,39 @@
-import React from 'react';
-import Link from 'next/link';
+'use client';
 
-export const metadata = {
-  title: 'Inayat Ali — Top Rated React Native & AI Mobile App Developer | GetHired Creator',
-  description: 'Meet Inayat Ali, creator of GetHired and Top Rated React Native & AI developer ($25/hr) with 14+ production apps delivered.',
-};
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import LoginModal from '@/components/LoginModal';
+import ReviewCarousel from '@/components/ReviewCarousel';
 
 export default function CreatorPage() {
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.authenticated && data.user) {
+          setUser(data.user);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleStart = () => {
+    if (user) {
+      window.location.href = '/dashboard';
+    } else {
+      setIsLoginModalOpen(true);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white relative overflow-x-hidden">
       {/* Top Ambient Glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-gradient-to-b from-emerald-600/20 via-indigo-600/10 to-transparent blur-3xl pointer-events-none" />
 
-      {/* Navigation Header */}
+      {/* Navigation Header (Identical to Home Page) */}
       <header className="sticky top-0 z-40 backdrop-blur-md bg-slate-950/80 border-b border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           <Link href="/" className="flex items-center space-x-3.5 group">
@@ -51,13 +72,13 @@ export default function CreatorPage() {
               <span>GitHub</span>
             </a>
 
-            <Link
-              href="/dashboard"
-              className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs sm:text-sm font-bold px-4 sm:px-5 py-2.5 rounded-xl shadow-lg shadow-indigo-600/30 transition transform"
+            <button
+              onClick={handleStart}
+              className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs sm:text-sm font-bold px-4 sm:px-5 py-2.5 rounded-xl shadow-lg shadow-indigo-600/30 transition transform cursor-pointer"
             >
               <i className="fa-solid fa-bolt"></i>
-              <span>Go to Copilot</span>
-            </Link>
+              <span>{user ? 'Open Dashboard' : 'Get Started Free'}</span>
+            </button>
           </div>
         </div>
       </header>
@@ -65,7 +86,7 @@ export default function CreatorPage() {
       {/* Main Profile Showcase */}
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 space-y-16 relative">
 
-        {/* Hero Card */}
+        {/* Hero Card with Real Inayat.png Photo */}
         <section className="p-8 sm:p-12 rounded-3xl bg-slate-900/90 border border-slate-800 backdrop-blur-md shadow-2xl relative overflow-hidden">
           <div className="absolute -top-24 -right-24 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -249,30 +270,30 @@ export default function CreatorPage() {
           </div>
         </section>
 
-        {/* Client Testimonial */}
-        <section className="p-8 sm:p-10 rounded-3xl bg-slate-900/90 border-2 border-amber-500/30 shadow-2xl relative">
-          <div className="flex items-center space-x-1.5 text-amber-400 mb-4">
-            <i className="fa-solid fa-star"></i>
-            <i className="fa-solid fa-star"></i>
-            <i className="fa-solid fa-star"></i>
-            <i className="fa-solid fa-star"></i>
-            <i className="fa-solid fa-star"></i>
-            <span className="ml-2 text-xs font-bold uppercase tracking-wider text-slate-400">Verified Client Review on Upwork</span>
+        {/* Verified Client Reviews on Upwork (Interactive Animated 3D Carousel) */}
+        <section className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div className="space-y-2">
+              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold">
+                <i className="fa-solid fa-star text-amber-400"></i>
+                <span>100% 5.0 Star Ratings on Upwork</span>
+              </div>
+              <h2 className="text-3xl font-black text-white">What Clients Say About Working With Inayat</h2>
+              <p className="text-sm text-slate-300">Verified testimonials from real production contracts. Swipe or use arrows to explore.</p>
+            </div>
+
+            <a
+              href="https://www.upwork.com/freelancers/~01f9a28f1fe989e240"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center space-x-1.5 text-xs text-emerald-400 hover:text-emerald-300 font-bold"
+            >
+              <span>View all Upwork reviews</span>
+              <i className="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+            </a>
           </div>
 
-          <blockquote className="text-base sm:text-lg text-slate-200 italic font-serif leading-relaxed">
-            "Inayat has done an outstanding job building the iOS app using React Native. His technical expertise, problem-solving mindset, and attention to detail are evident in every part of the final product. He was communicative, proactive in suggesting improvements, and delivered a clean, maintainable codebase ahead of schedule. Truly exceptional work by Inayat!"
-          </blockquote>
-
-          <div className="mt-6 flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center font-bold text-white text-sm border border-slate-700">
-              CL
-            </div>
-            <div>
-              <div className="font-bold text-white text-sm">Satisfied Client</div>
-              <div className="text-xs text-slate-400">iOS & React Native Production Project</div>
-            </div>
-          </div>
+          <ReviewCarousel />
         </section>
 
         {/* Call To Action Banner */}
@@ -331,12 +352,25 @@ export default function CreatorPage() {
               GitHub Repo
             </a>
             <span>•</span>
-            <Link href="/dashboard" className="text-indigo-400 hover:underline">
-              Launch Workspace
-            </Link>
+            <button
+              onClick={handleStart}
+              className="text-indigo-400 hover:underline cursor-pointer"
+            >
+              {user ? 'Open Dashboard' : 'Get Started Free'}
+            </button>
           </div>
         </div>
       </footer>
+
+      {/* Auth Login Modal on Creator Page */}
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onSuccess={() => {
+          setIsLoginModalOpen(false);
+          window.location.href = '/dashboard';
+        }}
+      />
     </div>
   );
 }
