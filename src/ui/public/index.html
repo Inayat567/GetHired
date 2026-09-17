@@ -103,6 +103,34 @@
     <!-- =================================================================== -->
     <div id="tab-triage" class="tab-content block">
 
+      <!-- Configuration Incomplete Alert Banner -->
+      <div id="missingConfigBanner" class="hidden mb-6 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300/80 rounded-2xl p-5 sm:p-6 shadow-sm">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div class="flex items-start space-x-3.5">
+            <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-xl flex-shrink-0 mt-0.5">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-amber-950">Setup Required Before Job Search</h3>
+              <p class="text-xs text-amber-800 mt-0.5">Please provide the following required details so GetHired can match opportunities and generate tailored outreach:</p>
+              <div id="missingConfigBadges" class="flex flex-wrap gap-2 mt-2.5">
+                <!-- Badges dynamically inserted here -->
+              </div>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 flex-shrink-0">
+            <button type="button" onclick="switchTab('settings')" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition shadow-sm flex items-center space-x-1.5">
+              <i class="fa-solid fa-key"></i>
+              <span>Add AI Key</span>
+            </button>
+            <button type="button" onclick="switchTab('profile')" class="bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold px-3.5 py-2 rounded-xl transition shadow-sm flex items-center space-x-1.5">
+              <i class="fa-solid fa-user-pen"></i>
+              <span>Update Profile & CV</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Action Discovery Banner -->
       <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-6 mb-6 text-white shadow-lg border border-indigo-900/50 flex flex-col md:flex-row items-center justify-between gap-4">
         <div>
@@ -805,8 +833,52 @@
         document.getElementById('pref_required_keywords').value = (pref.required_keywords || []).join(', ');
         document.getElementById('pref_match_threshold').value = pref.match_threshold || 75;
 
+        // Check readiness and show/hide setup guidance banner
+        await checkReadinessAndRenderBanner();
+
       } catch (err) {
         console.error('Error loading profile bundle:', err);
+      }
+    }
+
+    async function checkReadinessAndRenderBanner() {
+      const banner = document.getElementById('missingConfigBanner');
+      const badgesContainer = document.getElementById('missingConfigBadges');
+      if (!banner || !badgesContainer) return;
+
+      try {
+        const res = await fetch(`/api/profile/validate?id=${encodeURIComponent(activeProfile)}`);
+        const data = await res.json();
+
+        if (data.isValid) {
+          banner.classList.add('hidden');
+          badgesContainer.innerHTML = '';
+        } else {
+          banner.classList.remove('hidden');
+          badgesContainer.innerHTML = data.missing.map(item => {
+            let tabTarget = 'profile';
+            let icon = 'fa-id-card';
+            if (item.toLowerCase().includes('api key')) {
+              tabTarget = 'settings';
+              icon = 'fa-key';
+            } else if (item.toLowerCase().includes('cv') || item.toLowerCase().includes('resume')) {
+              tabTarget = 'profile';
+              icon = 'fa-file-pdf';
+            } else if (item.toLowerCase().includes('roles') || item.toLowerCase().includes('keywords')) {
+              tabTarget = 'preferences';
+              icon = 'fa-sliders';
+            }
+            return `
+              <button type="button" onclick="switchTab('${tabTarget}')" class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-amber-200/70 text-amber-900 hover:bg-amber-300 transition cursor-pointer border border-amber-300">
+                <i class="fa-solid ${icon} text-amber-700"></i>
+                <span>Missing: ${item}</span>
+                <i class="fa-solid fa-arrow-right text-[10px] ml-0.5 opacity-70"></i>
+              </button>
+            `;
+          }).join('');
+        }
+      } catch (err) {
+        console.error('Error checking profile validation:', err);
       }
     }
 
@@ -838,6 +910,7 @@
         if (data.success) {
           showToast('AI Provider & SMTP credentials saved!');
           updateAiBadge(ai_provider, ai_model);
+          await checkReadinessAndRenderBanner();
         } else {
           showToast(data.error || 'Failed to save settings', true);
         }
@@ -869,6 +942,7 @@
         const data = await res.json();
         if (data.success) {
           showToast('Candidate profile updated!');
+          await checkReadinessAndRenderBanner();
         } else {
           showToast(data.error || 'Failed to save profile', true);
         }
@@ -922,6 +996,7 @@
         const data = await res.json();
         if (data.success) {
           showToast('Target preferences & regional filters saved!');
+          await checkReadinessAndRenderBanner();
         } else {
           showToast(data.error || 'Failed to save preferences', true);
         }
@@ -1147,8 +1222,16 @@
           showToast(`Discovery complete! Scraped: ${data.report.scrapedCount}, Qualified: ${data.report.qualifiedCount}`);
           await loadJobs('qualified');
           await loadStats();
+          await checkReadinessAndRenderBanner();
         } else {
-          showToast(data.error || 'Discovery failed', true);
+          showToast(data.message || data.error || 'Discovery failed', true);
+          await checkReadinessAndRenderBanner();
+          if (data.missing && data.missing.length > 0) {
+            const first = data.missing[0].toLowerCase();
+            if (first.includes('api key')) switchTab('settings');
+            else if (first.includes('cv') || first.includes('name') || first.includes('email')) switchTab('profile');
+            else if (first.includes('roles') || first.includes('keywords')) switchTab('preferences');
+          }
         }
       } catch (err) {
         showToast(err.message, true);

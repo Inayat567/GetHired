@@ -12,6 +12,7 @@ import {
   saveUserSettings,
   saveCvFile,
   createNewProfile,
+  validateProfileCompleteness,
 } from '../config/profileManager';
 import { AI_MODELS_BY_PROVIDER } from '../types';
 import { runIngestion } from '../scrapers/ingestionService';
@@ -188,11 +189,29 @@ export async function startServer() {
         return sendJson(res, 400, { error: 'Unknown action' });
       }
 
+      // API: Check Profile Completeness & Readiness
+      if (pathname === '/api/profile/validate' && method === 'GET') {
+        const profileId = (parsedUrl.query.id as string) || 'default';
+        const validation = validateProfileCompleteness(profileId);
+        return sendJson(res, 200, validation);
+      }
+
       // API: Run Discovery & Evaluation
       if (pathname === '/api/discover' && method === 'POST') {
         const body = await parseBody(req);
         const profileId = body.profileId || (parsedUrl.query.id as string) || 'default';
         const bundle = loadProfileBundle(profileId);
+
+        // Validate mandatory configuration before running discovery & AI evaluation
+        const validation = validateProfileCompleteness(profileId);
+        if (!validation.isValid) {
+          return sendJson(res, 400, {
+            success: false,
+            error: 'Configuration incomplete',
+            missing: validation.missing,
+            message: `Please complete required settings before searching for jobs: ${validation.missing.join(', ')}.`,
+          });
+        }
 
         // Use active profile preferences and profile data for ingestion and evaluation
         const profileConfig: any = {

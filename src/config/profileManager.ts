@@ -190,3 +190,44 @@ export function createNewProfile(newProfileId: string): UserProfileBundle {
   savePreferences(cleanId, defaultBundle.preferences);
   return loadProfileBundle(cleanId);
 }
+
+export function validateProfileCompleteness(profileId: string = 'default'): { isValid: boolean; missing: string[]; warnings: string[] } {
+  const bundle = loadProfileBundle(profileId);
+  const missing: string[] = [];
+  const warnings: string[] = [];
+
+  // 1. Mandatory: AI API Key
+  const apiKey = bundle.settings?.api_key || process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY || process.env.GEMINI_API_KEY || process.env.GROK_API_KEY;
+  if (!apiKey || apiKey.trim() === '') {
+    missing.push(`AI API Key (${(bundle.settings?.ai_provider || 'OpenAI').toUpperCase()})`);
+  }
+
+  // 2. Mandatory: Candidate Name & Email
+  if (!bundle.candidateProfile?.name || bundle.candidateProfile.name.trim() === '' || bundle.candidateProfile.name === 'Jane Doe') {
+    missing.push('Candidate Full Name');
+  }
+  if (!bundle.candidateProfile?.email || bundle.candidateProfile.email.trim() === '' || bundle.candidateProfile.email === 'janedoe@example.com') {
+    missing.push('Candidate Email Address');
+  }
+
+  // 3. Mandatory: Target Role / Keywords
+  if (!bundle.preferences?.target_roles?.length && !bundle.preferences?.required_keywords?.length) {
+    missing.push('Target Roles or Required Keywords');
+  }
+
+  // 4. Important: CV PDF (Mandatory for outreach / strong match evaluation)
+  if (!bundle.cvExists) {
+    missing.push('CV / Resume (cv.pdf)');
+  }
+
+  // 5. Warning: SMTP Credentials
+  if (!bundle.settings?.smtp?.user || !bundle.settings?.smtp?.pass) {
+    warnings.push('SMTP Email Sending Credentials (required to send 1-click outreach emails)');
+  }
+
+  return {
+    isValid: missing.length === 0,
+    missing,
+    warnings,
+  };
+}
