@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { CandidateProfile, CandidateProfileSchema, Preferences, PreferencesSchema, UserSettings, UserSettingsSchema } from '../types';
+import { encryptSecret, decryptSecret } from './secrets';
 
 export interface UserProfileBundle {
   id: string;
@@ -9,6 +10,8 @@ export interface UserProfileBundle {
   settings: UserSettings;
   cvExists: boolean;
   cvSizeBytes?: number;
+  hasApiKey?: boolean;
+  hasSmtpCredentials?: boolean;
 }
 
 const PROFILES_ROOT = process.env.PROFILES_DIR ? path.resolve(process.env.PROFILES_DIR) : path.resolve('./profiles');
@@ -18,25 +21,10 @@ export function ensureProfilesDirectory() {
     fs.mkdirSync(PROFILES_ROOT, { recursive: true });
   }
 
-  // Initialize 'default' profile if it doesn't exist yet
+  // Initialize 'default' profile directory if it doesn't exist yet
   const defaultDir = path.join(PROFILES_ROOT, 'default');
   if (!fs.existsSync(defaultDir)) {
     fs.mkdirSync(defaultDir, { recursive: true });
-
-    // Copy root files to profiles/default if they exist
-    const rootProfile = path.resolve('./candidate_profile.json');
-    const rootPrefs = path.resolve('./preferences.json');
-    const rootCv = path.resolve('./assets/cv.pdf');
-
-    if (fs.existsSync(rootProfile)) {
-      fs.copyFileSync(rootProfile, path.join(defaultDir, 'candidate_profile.json'));
-    }
-    if (fs.existsSync(rootPrefs)) {
-      fs.copyFileSync(rootPrefs, path.join(defaultDir, 'preferences.json'));
-    }
-    if (fs.existsSync(rootCv)) {
-      fs.copyFileSync(rootCv, path.join(defaultDir, 'cv.pdf'));
-    }
   }
 }
 
@@ -79,17 +67,17 @@ export function listProfilesForUser(
   // Ensure user's primary profile directory exists
   const userPrimaryPaths = getProfilePaths(userId);
   if (!fs.existsSync(userPrimaryPaths.profilePath)) {
-    const defaultBundle = loadProfileBundle('default');
     const seededProfile: CandidateProfile = {
-      ...defaultBundle.candidateProfile,
-      name: userAccount?.name || defaultBundle.candidateProfile?.name || 'Candidate',
-      email: userAccount?.email || defaultBundle.candidateProfile?.email || 'dev@example.com',
+      name: userAccount?.name || '',
+      email: userAccount?.email || '',
+      current_title: '',
+      years_of_experience: 0,
+      core_stack: [],
+      secondary_stack: [],
+      notable_achievements: [],
     };
     saveCandidateProfile(userId, seededProfile);
-    savePreferences(userId, defaultBundle.preferences);
-    if (fs.existsSync(getProfilePaths('default').cvPath)) {
-      fs.copyFileSync(getProfilePaths('default').cvPath, userPrimaryPaths.cvPath);
-    }
+    savePreferences(userId, PreferencesSchema.parse({}));
   }
 
   const entries = fs.readdirSync(PROFILES_ROOT, { withFileTypes: true });
@@ -154,29 +142,29 @@ export function getProfilePaths(profileId: string = 'default') {
 export function loadProfileBundle(profileId: string = 'default'): UserProfileBundle {
   const paths = getProfilePaths(profileId);
 
-  // Fallback defaults if file doesn't exist
+  // Clean empty defaults (no secrets or preset values leak)
   let candidateProfile: CandidateProfile = {
-    name: 'Developer',
-    email: 'dev@example.com',
-    current_title: 'Senior React Native Developer',
-    years_of_experience: 5,
-    core_stack: ['React Native', 'Expo', 'TypeScript'],
-    secondary_stack: ['Node.js', 'Redux', 'iOS', 'Android'],
-    notable_achievements: ['Shipped production apps with high reliability.'],
+    name: '',
+    email: '',
+    current_title: '',
+    years_of_experience: 0,
+    core_stack: [],
+    secondary_stack: [],
+    notable_achievements: [],
   };
 
   let preferences: Preferences = PreferencesSchema.parse({});
   let settings: UserSettings = UserSettingsSchema.parse({
-    ai_provider: (process.env.LLM_PROVIDER as any) || 'openai',
-    ai_model: process.env.LLM_MODEL || 'gpt-4o-mini',
-    api_key: process.env.OPENAI_API_KEY || process.env.GROQ_API_KEY || process.env.GEMINI_API_KEY || process.env.ANTHROPIC_API_KEY || '',
+    ai_provider: 'openai',
+    ai_model: 'gpt-4o-mini',
+    api_key: '',
     smtp: {
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: Number(process.env.SMTP_PORT) || 587,
-      secure: process.env.SMTP_SECURE === 'true',
-      user: process.env.SMTP_USER || '',
-      pass: process.env.SMTP_PASS || '',
-      from_name: process.env.EMAIL_FROM_NAME || '',
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      user: '',
+      pass: '',
+      from_name: '',
     },
   });
 
@@ -201,7 +189,15 @@ export function loadProfileBundle(profileId: string = 'default'): UserProfileBun
   if (fs.existsSync(paths.settingsPath)) {
     try {
       const raw = fs.readFileSync(paths.settingsPath, 'utf8');
-      settings = UserSettingsSchema.parse(JSON.parse(raw));
+      const parsed = JSON.parse(raw);
+      // Decrypt sensitive credentials in memory
+      if (parsed.api_key) {
+        parsed.api_key = decryptSecret(parsed.api_key, `${profileId}_api_key`);
+      }
+      if (parsed.smtp && parsed.smtp.pass) {
+        parsed.smtp.pass = decryptSecret(parsed.smtp.pass, `${profileId}_smtp_pass`);
+      }
+      settings = UserSettingsSchema.parse(parsed);
     } catch (err) {
       console.warn(`[ProfileManager] Could not parse ${paths.settingsPath}, using default.`);
     }
@@ -212,9 +208,6 @@ export function loadProfileBundle(profileId: string = 'default'): UserProfileBun
   if (fs.existsSync(paths.cvPath)) {
     cvExists = true;
     cvSizeBytes = fs.statSync(paths.cvPath).size;
-  } else if (profileId === 'default' && fs.existsSync(path.resolve('./assets/cv.pdf'))) {
-    cvExists = true;
-    cvSizeBytes = fs.statSync(path.resolve('./assets/cv.pdf')).size;
   }
 
   return {
@@ -224,13 +217,102 @@ export function loadProfileBundle(profileId: string = 'default'): UserProfileBun
     settings,
     cvExists,
     cvSizeBytes,
+    hasApiKey: !!(settings.api_key && settings.api_key.trim() !== ''),
+    hasSmtpCredentials: !!(settings.smtp?.user && settings.smtp?.pass),
   };
 }
 
-export function saveUserSettings(profileId: string, settings: UserSettings) {
+/**
+ * Returns a sanitized bundle where secrets (API key, SMTP pass) are completely stripped out
+ * Safe for returning over HTTP GET requests to the browser.
+ */
+export function loadProfileBundleForResponse(profileId: string = 'default'): UserProfileBundle {
+  const bundle = loadProfileBundle(profileId);
+  return {
+    ...bundle,
+    hasApiKey: !!(bundle.settings.api_key && bundle.settings.api_key.trim() !== ''),
+    hasSmtpCredentials: !!(bundle.settings.smtp?.user && bundle.settings.smtp?.pass),
+    settings: {
+      ...bundle.settings,
+      api_key: '', // NEVER send raw key to browser
+      smtp: {
+        ...bundle.settings.smtp,
+        pass: '', // NEVER send raw password to browser
+      },
+    },
+  };
+}
+
+export function saveUserSettings(profileId: string, incomingSettings: any) {
   const paths = getProfilePaths(profileId);
-  const validated = UserSettingsSchema.parse(settings);
-  fs.writeFileSync(paths.settingsPath, JSON.stringify(validated, null, 2), 'utf8');
+
+  // Load current saved settings to handle __UNCHANGED__ sentinels safely
+  let existingSettings: UserSettings = UserSettingsSchema.parse({
+    ai_provider: 'openai',
+    ai_model: 'gpt-4o-mini',
+    api_key: '',
+    smtp: {
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      user: '',
+      pass: '',
+      from_name: '',
+    },
+  });
+
+  if (fs.existsSync(paths.settingsPath)) {
+    try {
+      const raw = fs.readFileSync(paths.settingsPath, 'utf8');
+      const parsed = JSON.parse(raw);
+      existingSettings = UserSettingsSchema.parse(parsed);
+    } catch {
+      // ignore
+    }
+  }
+
+  // Resolve API Key: if __UNCHANGED__ or empty and we have an existing stored key, preserve it
+  let resolvedApiKey = incomingSettings.api_key;
+  if (resolvedApiKey === '__UNCHANGED__' || (!resolvedApiKey && existingSettings.api_key)) {
+    resolvedApiKey = existingSettings.api_key; // already encrypted or plain
+  } else if (resolvedApiKey && resolvedApiKey.trim() !== '') {
+    // New key entered: encrypt with AES-256-GCM
+    resolvedApiKey = encryptSecret(resolvedApiKey.trim(), `${profileId}_api_key`);
+  } else {
+    resolvedApiKey = '';
+  }
+
+  // Resolve SMTP Settings & Password
+  const incomingSmtp = incomingSettings.smtp || {};
+  let resolvedSmtpPass = incomingSmtp.pass;
+  if (resolvedSmtpPass === '__UNCHANGED__' || (!resolvedSmtpPass && existingSettings.smtp?.pass)) {
+    resolvedSmtpPass = existingSettings.smtp?.pass || '';
+  } else if (resolvedSmtpPass && resolvedSmtpPass.trim() !== '') {
+    resolvedSmtpPass = encryptSecret(resolvedSmtpPass.trim(), `${profileId}_smtp_pass`);
+  } else {
+    resolvedSmtpPass = '';
+  }
+
+  let resolvedSmtpUser = incomingSmtp.user;
+  if (resolvedSmtpUser === '__UNCHANGED__' || (!resolvedSmtpUser && existingSettings.smtp?.user)) {
+    resolvedSmtpUser = existingSettings.smtp?.user || '';
+  }
+
+  const toSave = {
+    ai_provider: incomingSettings.ai_provider || existingSettings.ai_provider || 'openai',
+    ai_model: incomingSettings.ai_model || existingSettings.ai_model || 'gpt-4o-mini',
+    api_key: resolvedApiKey,
+    smtp: {
+      host: incomingSmtp.host || existingSettings.smtp?.host || 'smtp.gmail.com',
+      port: parseInt(incomingSmtp.port, 10) || existingSettings.smtp?.port || 587,
+      secure: typeof incomingSmtp.secure === 'boolean' ? incomingSmtp.secure : (existingSettings.smtp?.secure || false),
+      user: resolvedSmtpUser || '',
+      pass: resolvedSmtpPass || '',
+      from_name: incomingSmtp.from_name || existingSettings.smtp?.from_name || '',
+    },
+  };
+
+  fs.writeFileSync(paths.settingsPath, JSON.stringify(toSave, null, 2), 'utf8');
 }
 
 export function saveCandidateProfile(profileId: string, profile: CandidateProfile) {
@@ -282,26 +364,20 @@ export function createUserProfile(
 
   const newProfileId = userId ? `${userId}__${slug}` : slug;
 
-  // Use user's primary profile or default profile as template
+  // Use user's primary profile or empty template
   const baseProfileId = userId || 'default';
   const baseBundle = loadProfileBundle(baseProfileId);
 
   const newCandidateProfile: CandidateProfile = {
     ...baseBundle.candidateProfile,
-    name: userAccount?.name || baseBundle.candidateProfile?.name || 'Candidate',
-    email: userAccount?.email || baseBundle.candidateProfile?.email || 'dev@example.com',
+    name: userAccount?.name || baseBundle.candidateProfile?.name || '',
+    email: userAccount?.email || baseBundle.candidateProfile?.email || '',
     current_title: cleanName,
   };
 
   saveCandidateProfile(newProfileId, newCandidateProfile);
   savePreferences(newProfileId, baseBundle.preferences);
-
-  // Copy CV file if exists in base profile
-  const basePaths = getProfilePaths(baseProfileId);
-  const newPaths = getProfilePaths(newProfileId);
-  if (fs.existsSync(basePaths.cvPath)) {
-    fs.copyFileSync(basePaths.cvPath, newPaths.cvPath);
-  }
+  // NOTE: New profiles do NOT auto-copy any CV or secrets. The user attaches a CV intentionally.
 
   return loadProfileBundle(newProfileId);
 }
@@ -320,17 +396,17 @@ export function validateProfileCompleteness(profileId: string = 'default'): { is
   const missing: string[] = [];
   const warnings: string[] = [];
 
-  // 1. Mandatory: AI API Key
-  const apiKey = bundle.settings?.api_key || process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY || process.env.GEMINI_API_KEY || process.env.GROK_API_KEY;
+  // 1. Mandatory: AI API Key (must be provided explicitly in settings)
+  const apiKey = bundle.settings?.api_key;
   if (!apiKey || apiKey.trim() === '') {
     missing.push(`AI API Key (${(bundle.settings?.ai_provider || 'OpenAI').toUpperCase()})`);
   }
 
   // 2. Mandatory: Candidate Name & Email
-  if (!bundle.candidateProfile?.name || bundle.candidateProfile.name.trim() === '' || bundle.candidateProfile.name === 'Jane Doe') {
+  if (!bundle.candidateProfile?.name || bundle.candidateProfile.name.trim() === '') {
     missing.push('Candidate Full Name');
   }
-  if (!bundle.candidateProfile?.email || bundle.candidateProfile.email.trim() === '' || bundle.candidateProfile.email === 'janedoe@example.com') {
+  if (!bundle.candidateProfile?.email || bundle.candidateProfile.email.trim() === '') {
     missing.push('Candidate Email Address');
   }
 

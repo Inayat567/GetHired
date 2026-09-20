@@ -1,8 +1,55 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+// In-memory rate limiting tracker (per IP/route)
+interface RateLimitRecord {
+  count: number;
+  firstRequest: number;
+}
+const rateLimitMap = new Map<string, RateLimitRecord>();
+
+function checkRateLimit(key: string, maxRequests: number, windowMs: number): boolean {
+  const now = Date.now();
+  const record = rateLimitMap.get(key);
+
+  if (!record || now - record.firstRequest > windowMs) {
+    rateLimitMap.set(key, { count: 1, firstRequest: now });
+    return true;
+  }
+
+  if (record.count >= maxRequests) {
+    return false;
+  }
+
+  record.count += 1;
+  return true;
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // Rate limit sensitive authentication endpoints
+  if (pathname === '/api/auth/send-otp') {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown';
+    const allowed = checkRateLimit(`send_otp_${ip}`, 5, 10 * 60 * 1000); // 5 per 10 mins
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Too many OTP requests. Please wait a few minutes before trying again.' },
+        { status: 429 }
+      );
+    }
+  }
+
+  if (pathname === '/api/auth/verify-otp') {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown';
+    const allowed = checkRateLimit(`verify_otp_${ip}`, 10, 10 * 60 * 1000); // 10 attempts per 10 mins
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Too many verification attempts. Please wait 10 minutes before retrying.' },
+        { status: 429 }
+      );
+    }
+  }
 
   // Protect /dashboard and any nested routes
   if (pathname.startsWith('/dashboard')) {
@@ -53,5 +100,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard', '/dashboard/:path*'],
+  matcher: ['/dashboard', '/dashboard/:path*', '/api/auth/send-otp', '/api/auth/verify-otp'],
 };

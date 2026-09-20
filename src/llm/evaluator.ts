@@ -13,22 +13,23 @@ interface ResolvedAISettings {
 }
 
 function resolveAISettings(config: AppConfig, userSettings?: UserSettings): ResolvedAISettings {
-  if (userSettings && userSettings.api_key) {
+  if (userSettings) {
     return {
       provider: userSettings.ai_provider || 'openai',
       model: userSettings.ai_model || 'gpt-4o-mini',
-      apiKey: userSettings.api_key,
+      apiKey: userSettings.api_key || '',
     };
   }
 
-  // Fallback to environment variables
+  // Fallback to environment variables only if no userSettings object was passed (e.g. headless CLI)
   const envProvider = ((process.env.LLM_PROVIDER as any) || 'openai') as AIProvider;
   const envKey =
     process.env.OPENAI_API_KEY ||
     process.env.ANTHROPIC_API_KEY ||
     process.env.GEMINI_API_KEY ||
     process.env.GROK_API_KEY ||
-    config.llm.apiKey;
+    config.llm.apiKey ||
+    '';
 
   return {
     provider: envProvider,

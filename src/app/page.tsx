@@ -40,6 +40,15 @@ export default function HomePage() {
       .catch(() => {});
   }, []);
 
+  // Auto-hide toast notification after 4.5 seconds
+  useEffect(() => {
+    if (!toastMessage) return;
+    const timer = setTimeout(() => {
+      setToastMessage(null);
+    }, 4500);
+    return () => clearTimeout(timer);
+  }, [toastMessage]);
+
   const handleStart = () => {
     if (user) {
       window.location.href = '/dashboard';

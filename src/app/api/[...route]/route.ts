@@ -6,6 +6,7 @@ import {
   listProfiles,
   listProfilesForUser,
   loadProfileBundle,
+  loadProfileBundleForResponse,
   saveCandidateProfile,
   savePreferences,
   saveUserSettings,
@@ -171,17 +172,17 @@ export async function GET(req: Request, context: { params: Promise<{ route: stri
       return NextResponse.json({ models: AI_MODELS_BY_PROVIDER });
     }
 
-    // 8. Get Active Profile Bundle
+    // 8. Get Active Profile Bundle (Sanitized: Secrets stripped for security)
     if (pathname === '/api/profile') {
       const profileId = searchParams.get('id') || effectiveProfileId;
-      const bundle = loadProfileBundle(profileId);
+      const bundle = loadProfileBundleForResponse(profileId);
       return NextResponse.json(bundle);
     }
 
-    // 9. Get Settings
+    // 9. Get Settings (Sanitized: Secrets stripped for security)
     if (pathname === '/api/settings') {
       const profileId = searchParams.get('id') || effectiveProfileId;
-      const bundle = loadProfileBundle(profileId);
+      const bundle = loadProfileBundleForResponse(profileId);
       return NextResponse.json(bundle.settings);
     }
 
@@ -406,20 +407,36 @@ export async function POST(req: Request, context: { params: Promise<{ route: str
       });
     }
 
-    // 11. Test SMTP Verification
+    // 11. Test SMTP Verification (Prefers decrypted server credentials)
     if (pathname === '/api/test-smtp') {
-      const profileId = searchParams.get('id') || 'default';
+      const profileId = searchParams.get('id') || effectiveProfileId;
       const bundle = loadProfileBundle(profileId);
-      const smtpToTest = body.smtp || bundle.settings.smtp;
+      const incomingSmtp = body.smtp || {};
+      const smtpToTest = {
+        host: incomingSmtp.host || bundle.settings.smtp?.host || 'smtp.gmail.com',
+        port: parseInt(incomingSmtp.port, 10) || bundle.settings.smtp?.port || 587,
+        secure: typeof incomingSmtp.secure === 'boolean' ? incomingSmtp.secure : (bundle.settings.smtp?.secure || false),
+        user: (incomingSmtp.user && incomingSmtp.user !== '__UNCHANGED__') ? incomingSmtp.user : (bundle.settings.smtp?.user || ''),
+        pass: (incomingSmtp.pass && incomingSmtp.pass !== '__UNCHANGED__') ? incomingSmtp.pass : (bundle.settings.smtp?.pass || ''),
+        from_name: incomingSmtp.from_name || bundle.settings.smtp?.from_name || '',
+      };
       const result = await testSmtpConnection(config, smtpToTest);
       return NextResponse.json(result);
     }
 
-    // 12. Send Live Test Email
+    // 12. Send Live Test Email (Prefers decrypted server credentials)
     if (pathname === '/api/send-test-email') {
-      const profileId = searchParams.get('id') || 'default';
+      const profileId = searchParams.get('id') || effectiveProfileId;
       const bundle = loadProfileBundle(profileId);
-      const smtp = body.smtp || bundle.settings.smtp;
+      const incomingSmtp = body.smtp || {};
+      const smtp = {
+        host: incomingSmtp.host || bundle.settings.smtp?.host || 'smtp.gmail.com',
+        port: parseInt(incomingSmtp.port, 10) || bundle.settings.smtp?.port || 587,
+        secure: typeof incomingSmtp.secure === 'boolean' ? incomingSmtp.secure : (bundle.settings.smtp?.secure || false),
+        user: (incomingSmtp.user && incomingSmtp.user !== '__UNCHANGED__') ? incomingSmtp.user : (bundle.settings.smtp?.user || ''),
+        pass: (incomingSmtp.pass && incomingSmtp.pass !== '__UNCHANGED__') ? incomingSmtp.pass : (bundle.settings.smtp?.pass || ''),
+        from_name: incomingSmtp.from_name || bundle.settings.smtp?.from_name || '',
+      };
       const profileConfig: any = {
         ...config,
         paths: {

@@ -236,7 +236,6 @@
 
       <!-- Stats Pill Bar -->
       <div id="statsBar" class="flex items-center space-x-2 text-xs overflow-x-auto pb-1 md:pb-0">
-        <span class="bg-slate-800 text-slate-300 px-2.5 py-1 rounded-md border border-slate-700 whitespace-nowrap">Total: <strong id="statTotal" class="text-white font-bold">0</strong></span>
         <span class="bg-emerald-950/70 text-emerald-400 px-2.5 py-1 rounded-md border border-emerald-800/60 whitespace-nowrap">Qualified: <strong id="statQualified" class="font-bold">0</strong></span>
         <span class="bg-amber-950/70 text-amber-400 px-2.5 py-1 rounded-md border border-amber-800/60 whitespace-nowrap">Pending: <strong id="statPending" class="font-bold">0</strong></span>
         <span class="bg-blue-950/70 text-blue-400 px-2.5 py-1 rounded-md border border-blue-800/60 whitespace-nowrap">Applied: <strong id="statApplied" class="font-bold">0</strong></span>
@@ -448,11 +447,14 @@
               </div>
 
               <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">
+                <label class="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
                   <span id="apiKeyLabel">OpenAI API Key</span>
+                  <span id="apiKeySavedBadge" class="hidden text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md flex items-center gap-1">
+                    <i class="fa-solid fa-lock text-[9px]"></i> <span>Encrypted & Saved</span>
+                  </span>
                 </label>
                 <div class="relative">
-                  <input type="password" id="setting_api_key" placeholder="sk-..." class="w-full text-sm px-3.5 py-2.5 pr-10 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                  <input type="password" id="setting_api_key" placeholder="Enter key (or leave blank to keep saved key)" class="w-full text-sm px-3.5 py-2.5 pr-10 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
                   <button type="button" onclick="togglePasswordVisibility('setting_api_key')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
                     <i class="fa-solid fa-eye text-xs"></i>
                   </button>
@@ -493,9 +495,14 @@
                   <input type="email" id="smtp_user" placeholder="your_email@gmail.com" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
                 </div>
                 <div>
-                  <label class="block text-xs font-semibold text-slate-700 mb-1">Password / App Password</label>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                    <span>Password / App Password</span>
+                    <span id="smtpPassSavedBadge" class="hidden text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md flex items-center gap-1">
+                      <i class="fa-solid fa-lock text-[9px]"></i> <span>Saved</span>
+                    </span>
+                  </label>
                   <div class="relative">
-                    <input type="password" id="smtp_pass" placeholder="16-character app password" class="w-full text-sm px-3.5 py-2.5 pr-10 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                    <input type="password" id="smtp_pass" placeholder="16-char app password (or leave blank to keep)" class="w-full text-sm px-3.5 py-2.5 pr-10 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
                     <button type="button" onclick="togglePasswordVisibility('smtp_pass')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
                       <i class="fa-solid fa-eye text-xs"></i>
                     </button>
@@ -689,15 +696,40 @@
           <h3 class="font-bold text-slate-900 text-base mb-1">Resume / CV Asset</h3>
           <p class="text-xs text-slate-500 mb-4">Upload your PDF resume. It will be attached when you 1-click dispatch cold emails.</p>
 
-          <div id="dropZone" class="flex-1 border-2 border-dashed border-slate-300 hover:border-indigo-500 rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50 hover:bg-indigo-50/30 min-h-[180px]">
-            <i class="fa-solid fa-file-pdf text-4xl text-rose-500 mb-2"></i>
-            <span class="text-sm font-bold text-slate-800">Drop your resume PDF here</span>
-            <span class="text-xs text-slate-400 mt-1">or click to browse from your device</span>
+          <div id="dropZone" class="flex-1 border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-900/60 hover:bg-indigo-950/20 min-h-[190px] relative overflow-hidden">
+            <!-- Idle Upload State -->
+            <div id="dropZoneIdle" class="flex flex-col items-center">
+              <i class="fa-solid fa-cloud-arrow-up text-4xl text-indigo-400 mb-2"></i>
+              <span class="text-sm font-bold text-slate-200">Drop your resume PDF here</span>
+              <span class="text-xs text-slate-400 mt-1">or click to browse from your device</span>
+              <span class="text-[11px] text-indigo-400/80 mt-2 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">Supports PDF format</span>
+            </div>
+
+            <!-- Uploading Progress State -->
+            <div id="dropZoneProgress" class="hidden w-full flex-col items-center px-4 py-2">
+              <i class="fa-solid fa-circle-notch fa-spin text-3xl text-indigo-400 mb-2"></i>
+              <span class="text-xs font-bold text-white mb-1">Uploading Resume...</span>
+              <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden border border-slate-700 my-2">
+                <div id="cvProgressBar" class="bg-indigo-600 h-2.5 rounded-full transition-all duration-200" style="width: 0%"></div>
+              </div>
+              <span id="cvProgressText" class="text-xs text-indigo-300 font-mono font-semibold">0%</span>
+            </div>
+
+            <!-- Attached File State -->
+            <div id="dropZoneAttached" class="hidden flex-col items-center">
+              <div class="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-2xl mb-2">
+                <i class="fa-solid fa-file-circle-check"></i>
+              </div>
+              <span id="cvAttachedName" class="text-xs font-bold text-white max-w-[210px] truncate">resume.pdf</span>
+              <span id="cvAttachedSize" class="text-[11px] text-emerald-400 font-mono mt-0.5 font-semibold">Ready & Attached</span>
+              <span class="text-[11px] text-slate-400 mt-2 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 hover:text-white transition">Click to replace PDF</span>
+            </div>
+
             <input type="file" id="cvFileInput" accept="application/pdf" class="hidden" onchange="handleFileUpload(this.files)" />
           </div>
 
-          <div id="cvStatus" class="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs flex items-center justify-between">
-            <span class="text-slate-600">Status: <strong id="cvStatusText" class="text-slate-800">Checking...</strong></span>
+          <div id="cvStatus" class="mt-4 p-3 bg-slate-900 rounded-xl border border-slate-800 text-xs flex items-center justify-between">
+            <span class="text-slate-400">Status: <strong id="cvStatusText" class="text-white">Checking...</strong></span>
             <span id="cvSizeText" class="text-slate-400 font-mono"></span>
           </div>
         </div>
@@ -859,8 +891,8 @@
       setupDropZone();
       await checkAuth();
       await loadAiModels();
-      await loadProfileList();
-      await loadProfileData(activeProfile);
+      const resolvedProfileId = await loadProfileList();
+      await loadProfileData(resolvedProfileId || activeProfile);
       await loadJobs(currentStatusFilter);
       await loadStats();
       await checkLinkedInStatus();
@@ -975,7 +1007,11 @@
       try {
         await fetch('/api/auth/logout', { method: 'POST' });
         showToast('Signed out.');
-        location.reload();
+        if (window.top) {
+          window.top.location.href = '/';
+        } else {
+          window.location.href = '/';
+        }
       } catch (err) {
         showToast(err.message, true);
       }
@@ -1086,6 +1122,12 @@
         const select = document.getElementById('profileSelect');
         select.innerHTML = '';
         const list = data.profiles || [];
+        
+        // If the server tells us what the active profile should be, use it
+        if (data.active) {
+          activeProfile = data.active;
+        }
+
         list.forEach(p => {
           const opt = document.createElement('option');
           const id = typeof p === 'string' ? p : p.id;
@@ -1101,11 +1143,13 @@
           const exists = list.some(p => (typeof p === 'string' ? p : p.id) === activeProfile);
           if (!exists) {
             activeProfile = typeof list[0] === 'string' ? list[0] : list[0].id;
-            select.value = activeProfile;
           }
+          select.value = activeProfile;
         }
+        return activeProfile;
       } catch (err) {
         console.error('Error loading profiles:', err);
+        return activeProfile;
       }
     }
 
@@ -1165,11 +1209,13 @@
         const cvText = document.getElementById('cvStatusText');
         const cvSize = document.getElementById('cvSizeText');
         if (bundle.cvExists) {
-          cvText.innerHTML = '<span class="text-emerald-600 font-bold">cv.pdf ready</span>';
-          cvSize.textContent = `${(bundle.cvSizeBytes / 1024).toFixed(1)} KB`;
+          if (cvText) cvText.innerHTML = '<span class="text-emerald-600 font-bold">cv.pdf ready</span>';
+          if (cvSize) cvSize.textContent = `${(bundle.cvSizeBytes / 1024).toFixed(1)} KB`;
+          updateCvDropZone('attached', 'cv.pdf', (bundle.cvSizeBytes / 1024).toFixed(1));
         } else {
-          cvText.innerHTML = '<span class="text-amber-600 font-semibold">No CV uploaded yet</span>';
-          cvSize.textContent = '';
+          if (cvText) cvText.innerHTML = '<span class="text-amber-600 font-semibold">No CV uploaded yet</span>';
+          if (cvSize) cvSize.textContent = '';
+          updateCvDropZone('idle');
         }
 
         // 3. AI & SMTP Settings
@@ -1177,13 +1223,32 @@
         const provider = s.ai_provider || 'openai';
         onAiProviderChanged(provider, s.ai_model);
 
-        document.getElementById('setting_api_key').value = s.api_key || '';
+        // Security: Never reveal secrets in inputs. Show 'Encrypted & Saved' badges if keys exist.
+        document.getElementById('setting_api_key').value = '';
+        const apiBadge = document.getElementById('apiKeySavedBadge');
+        if (apiBadge) {
+          if (bundle.hasApiKey) {
+            apiBadge.classList.remove('hidden');
+          } else {
+            apiBadge.classList.add('hidden');
+          }
+        }
+
         if (s.smtp) {
           document.getElementById('smtp_host').value = s.smtp.host || 'smtp.gmail.com';
           document.getElementById('smtp_port').value = s.smtp.port || 587;
           document.getElementById('smtp_from_name').value = s.smtp.from_name || p.name || '';
           document.getElementById('smtp_user').value = s.smtp.user || '';
-          document.getElementById('smtp_pass').value = s.smtp.pass || '';
+          document.getElementById('smtp_pass').value = '';
+
+          const smtpBadge = document.getElementById('smtpPassSavedBadge');
+          if (smtpBadge) {
+            if (bundle.hasSmtpCredentials) {
+              smtpBadge.classList.remove('hidden');
+            } else {
+              smtpBadge.classList.add('hidden');
+            }
+          }
         }
 
         // 4. Preferences
@@ -1259,14 +1324,21 @@
       const providerRadio = document.querySelector('input[name="ai_provider"]:checked');
       const ai_provider = providerRadio ? providerRadio.value : 'openai';
       const ai_model = document.getElementById('setting_ai_model').value;
-      const api_key = document.getElementById('setting_api_key').value.trim();
+      const rawApiKey = document.getElementById('setting_api_key').value.trim();
+      const rawSmtpPass = document.getElementById('smtp_pass').value.trim();
+      const rawSmtpUser = document.getElementById('smtp_user').value.trim();
+
+      // If user left secret blank, send '__UNCHANGED__' sentinel to preserve stored encrypted key
+      const api_key = rawApiKey || '__UNCHANGED__';
+      const pass = rawSmtpPass || '__UNCHANGED__';
+      const user = rawSmtpUser || '__UNCHANGED__';
 
       const smtp = {
         host: document.getElementById('smtp_host').value.trim() || 'smtp.gmail.com',
         port: parseInt(document.getElementById('smtp_port').value, 10) || 587,
         secure: false,
-        user: document.getElementById('smtp_user').value.trim(),
-        pass: document.getElementById('smtp_pass').value.trim(),
+        user,
+        pass,
         from_name: document.getElementById('smtp_from_name').value.trim(),
       };
 
@@ -1280,9 +1352,11 @@
         });
         const data = await res.json();
         if (data.success) {
-          showToast('AI Provider & SMTP credentials saved!');
+          showToast('AI Provider & SMTP credentials saved & encrypted!');
           updateAiBadge(ai_provider, ai_model);
-          await checkReadinessAndRenderBanner();
+          document.getElementById('setting_api_key').value = '';
+          document.getElementById('smtp_pass').value = '';
+          await loadProfileData(activeProfile);
         } else {
           showToast(data.error || 'Failed to save settings', true);
         }
@@ -1399,6 +1473,29 @@
       });
     }
 
+    function updateCvDropZone(state, fileName, sizeKb) {
+      const idle = document.getElementById('dropZoneIdle');
+      const progress = document.getElementById('dropZoneProgress');
+      const attached = document.getElementById('dropZoneAttached');
+      if (!idle || !progress || !attached) return;
+
+      idle.classList.add('hidden');      idle.classList.remove('flex');
+      progress.classList.add('hidden');  progress.classList.remove('flex');
+      attached.classList.add('hidden');  attached.classList.remove('flex');
+
+      if (state === 'idle') {
+        idle.classList.remove('hidden'); idle.classList.add('flex');
+      } else if (state === 'progress') {
+        progress.classList.remove('hidden'); progress.classList.add('flex');
+      } else if (state === 'attached') {
+        attached.classList.remove('hidden'); attached.classList.add('flex');
+        const nameEl = document.getElementById('cvAttachedName');
+        const sizeEl = document.getElementById('cvAttachedSize');
+        if (nameEl) nameEl.textContent = fileName || 'cv.pdf';
+        if (sizeEl) sizeEl.textContent = sizeKb ? `${sizeKb} KB` : 'Ready & Attached';
+      }
+    }
+
     async function handleFileUpload(files) {
       if (!files || !files[0]) return;
       const file = files[0];
@@ -1406,6 +1503,17 @@
         showToast('Please upload a valid PDF file.', true);
         return;
       }
+
+      // Show progress bar
+      updateCvDropZone('progress');
+      const bar = document.getElementById('cvProgressBar');
+      const pct = document.getElementById('cvProgressText');
+      let prog = 0;
+      const tick = setInterval(() => {
+        prog = Math.min(prog + (prog < 60 ? 12 : prog < 85 ? 6 : 2), 90);
+        if (bar) bar.style.width = prog + '%';
+        if (pct) pct.textContent = prog + '%';
+      }, 180);
 
       const reader = new FileReader();
       reader.onload = async (e) => {
@@ -1417,13 +1525,30 @@
             body: JSON.stringify({ base64, filename: file.name }),
           });
           const data = await res.json();
+
+          clearInterval(tick);
+          if (bar) bar.style.width = '100%';
+          if (pct) pct.textContent = '100%';
+
           if (data.success) {
-            showToast('CV uploaded and ready!');
-            await loadProfileData(activeProfile);
+            setTimeout(() => {
+              const sizeKb = ((data.sizeBytes || file.size) / 1024).toFixed(1);
+              updateCvDropZone('attached', file.name, sizeKb);
+              // Update status bar text too
+              const cvText = document.getElementById('cvStatusText');
+              const cvSize = document.getElementById('cvSizeText');
+              if (cvText) cvText.innerHTML = '<span class="text-emerald-600 font-bold">cv.pdf ready</span>';
+              if (cvSize) cvSize.textContent = sizeKb + ' KB';
+              showToast('CV uploaded and ready!');
+              checkReadinessAndRenderBanner();
+            }, 300);
           } else {
+            updateCvDropZone('idle');
             showToast(data.error || 'Upload failed', true);
           }
         } catch (err) {
+          clearInterval(tick);
+          updateCvDropZone('idle');
           showToast(err.message, true);
         }
       };
@@ -1434,11 +1559,16 @@
       try {
         const res = await fetch(`/api/stats?id=${encodeURIComponent(activeProfile)}`);
         const s = await res.json();
-        document.getElementById('statTotal').innerText = s.total || 0;
-        document.getElementById('statQualified').innerText = s.qualified || 0;
-        document.getElementById('statPending').innerText = s.pending || 0;
-        document.getElementById('statApplied').innerText = s.applied || 0;
-        document.getElementById('statSkipped').innerText = s.skipped || 0;
+        const totalEl = document.getElementById('statTotal');
+        if (totalEl) totalEl.innerText = s.total || 0;
+        const qualEl = document.getElementById('statQualified');
+        if (qualEl) qualEl.innerText = s.qualified || 0;
+        const pendEl = document.getElementById('statPending');
+        if (pendEl) pendEl.innerText = s.pending || 0;
+        const appEl = document.getElementById('statApplied');
+        if (appEl) appEl.innerText = s.applied || 0;
+        const skipEl = document.getElementById('statSkipped');
+        if (skipEl) skipEl.innerText = s.skipped || 0;
       } catch (err) {
         console.error(err);
       }
@@ -1622,12 +1752,14 @@
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Testing...';
       resEl.classList.add('hidden');
 
+      const rawPass = document.getElementById('smtp_pass').value.trim();
+      const rawUser = document.getElementById('smtp_user').value.trim();
       const smtp = {
         host: document.getElementById('smtp_host').value.trim(),
         port: parseInt(document.getElementById('smtp_port').value, 10) || 587,
         secure: false,
-        user: document.getElementById('smtp_user').value.trim(),
-        pass: document.getElementById('smtp_pass').value.trim(),
+        user: rawUser || '__UNCHANGED__',
+        pass: rawPass || '__UNCHANGED__',
         from_name: document.getElementById('smtp_from_name').value.trim(),
       };
 
@@ -1759,12 +1891,14 @@
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Sending Test Email...';
       resEl.classList.add('hidden');
 
+      const rawLivePass = document.getElementById('smtp_pass').value.trim();
+      const rawLiveUser = document.getElementById('smtp_user').value.trim();
       const smtp = {
         host: document.getElementById('smtp_host').value.trim(),
         port: parseInt(document.getElementById('smtp_port').value, 10) || 587,
         secure: false,
-        user: document.getElementById('smtp_user').value.trim(),
-        pass: document.getElementById('smtp_pass').value.trim(),
+        user: rawLiveUser || '__UNCHANGED__',
+        pass: rawLivePass || '__UNCHANGED__',
         from_name: document.getElementById('smtp_from_name').value.trim(),
       };
 
