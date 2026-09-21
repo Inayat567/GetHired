@@ -181,12 +181,12 @@ export default function ReviewCarousel() {
         </div>
 
         {/* Active Center Card (Highlighted, Large, Scale 105, Full Content) */}
-        <div className="w-full max-w-xl p-6 sm:p-9 rounded-3xl bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-2 border-amber-500/50 shadow-2xl shadow-amber-500/10 transform scale-100 sm:scale-105 transition-all duration-500 ease-out z-20 relative">
+        <div className="w-full max-w-xl p-5 sm:p-9 rounded-3xl bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-2 border-amber-500/50 shadow-2xl shadow-amber-500/10 transform scale-100 sm:scale-105 transition-all duration-500 ease-out z-20 relative">
           {/* Ambient Glow */}
           <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-48 h-20 bg-amber-500/15 blur-2xl rounded-full pointer-events-none" />
 
           {/* Top Bar: Rating & Badges */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4 mb-5">
+          <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 border-b border-slate-800 pb-4 mb-5">
             <div className="flex items-center space-x-1.5 text-amber-400 text-sm">
               <i className="fa-solid fa-star"></i>
               <i className="fa-solid fa-star"></i>
@@ -211,40 +211,40 @@ export default function ReviewCarousel() {
           </div>
 
           {/* Quote */}
-          <blockquote className="text-sm sm:text-base text-slate-100 italic font-serif leading-relaxed min-h-[110px] sm:min-h-[96px]">
+          <blockquote className="text-xs sm:text-base text-slate-100 italic font-serif leading-relaxed min-h-[90px] sm:min-h-[96px]">
             "{currentReview.quote}"
           </blockquote>
 
           {/* Client Details Footer */}
-          <div className="mt-6 pt-5 border-t border-slate-800/80 flex items-center justify-between gap-4">
-            <div className="flex items-center space-x-3.5 min-w-0 flex-1">
+          <div className="mt-5 sm:mt-6 pt-4 sm:pt-5 border-t border-slate-800/80 flex flex-col xs:flex-row xs:items-center justify-between gap-3 sm:gap-4">
+            <div className="flex items-center space-x-3 sm:space-x-3.5 min-w-0 flex-1">
               <div
-                className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${currentReview.avatarGradient} p-0.5 shadow-lg flex-shrink-0`}
+                className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br ${currentReview.avatarGradient} p-0.5 shadow-lg flex-shrink-0`}
               >
-                <div className="w-full h-full rounded-[14px] bg-slate-950/80 flex items-center justify-center text-sm font-black text-white">
+                <div className="w-full h-full rounded-[10px] sm:rounded-[14px] bg-slate-950/80 flex items-center justify-center text-xs sm:text-sm font-black text-white">
                   {currentReview.initials}
                 </div>
               </div>
 
               <div className="min-w-0 flex-1">
-                <div className="font-bold text-white text-sm sm:text-base flex items-center space-x-2 truncate">
+                <div className="font-bold text-white text-xs sm:text-base flex items-center space-x-1.5 sm:space-x-2 truncate">
                   <span className="truncate">{currentReview.client}</span>
-                  <span className="text-xs text-slate-400 font-normal flex-shrink-0">
+                  <span className="text-[11px] sm:text-xs text-slate-400 font-normal flex-shrink-0">
                     • {currentReview.location}
                   </span>
                 </div>
-                <div className="text-xs text-slate-400 truncate mt-0.5">
+                <div className="text-[11px] sm:text-xs text-slate-400 truncate mt-0.5">
                   {currentReview.project}
                 </div>
               </div>
             </div>
 
-            <div className="text-right flex-shrink-0 pl-2">
-              <div className="text-xs font-bold text-blue-400 flex items-center justify-end space-x-1.5 whitespace-nowrap">
+            <div className="text-left xs:text-right flex-shrink-0 pt-2 xs:pt-0 border-t xs:border-t-0 border-slate-800/40 xs:pl-2">
+              <div className="text-xs font-bold text-blue-400 flex items-center justify-start xs:justify-end space-x-1.5 whitespace-nowrap">
                 <i className="fa-solid fa-circle-check text-blue-400 text-xs"></i>
                 <span>Verified Client</span>
               </div>
-              <div className="text-[11px] text-slate-500 mt-0.5">{currentReview.date}</div>
+              <div className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5">{currentReview.date}</div>
             </div>
           </div>
         </div>
@@ -280,18 +280,18 @@ export default function ReviewCarousel() {
       </div>
 
       {/* Navigation Controls Bar */}
-      <div className="flex items-center justify-center space-x-6 mt-8">
+      <div className="flex items-center justify-center space-x-3 sm:space-x-6 mt-8">
         {/* Previous Button */}
         <button
           onClick={handlePrev}
           aria-label="Previous review"
-          className="w-11 h-11 rounded-2xl bg-slate-900 border border-slate-800 hover:border-amber-500/40 text-slate-300 hover:text-white flex items-center justify-center shadow-lg transition transform hover:scale-105 active:scale-95 cursor-pointer"
+          className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-slate-900 border border-slate-800 hover:border-amber-500/40 text-slate-300 hover:text-white flex items-center justify-center shadow-lg transition transform hover:scale-105 active:scale-95 cursor-pointer"
         >
           <i className="fa-solid fa-chevron-left text-sm"></i>
         </button>
 
         {/* Indicator Dots */}
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1.5 sm:space-x-2">
           {REVIEWS.map((_, idx) => (
             <button
               key={idx}

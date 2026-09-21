@@ -130,30 +130,174 @@
       background-color: #1e293b !important;
       color: #f8fafc !important;
     }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Mobile Burger Drawer */
+    #mobileDrawer {
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    #mobileDrawer.open {
+      transform: translateX(0);
+    }
+    #drawerOverlay {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    #drawerOverlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Mobile Bottom Tab Bar */
+    .mobile-tab-bar {
+      display: none;
+    }
+    @media (max-width: 767px) {
+      .mobile-tab-bar {
+        display: flex;
+      }
+      .desktop-tab-bar {
+        display: none !important;
+      }
+      /* Add bottom padding to main so content isn't hidden behind bottom bar */
+      main {
+        padding-bottom: 5.5rem !important;
+      }
+    }
+
+    /* Bottom tab active state */
+    .btm-tab.active {
+      color: #6366f1 !important;
+    }
+    .btm-tab.active .btm-tab-icon {
+      background-color: rgba(99, 102, 241, 0.15);
+      border-color: rgba(99, 102, 241, 0.35);
+    }
   </style>
 </head>
-<body class="h-full flex flex-col bg-slate-950 text-slate-100 antialiased">
+<body class="h-full flex flex-col bg-slate-950 text-slate-100 antialiased overflow-x-hidden">
+
+  <!-- Mobile Drawer Overlay -->
+  <div id="drawerOverlay" onclick="closeDrawer()" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"></div>
+
+  <!-- Mobile Slide-In Drawer -->
+  <div id="mobileDrawer" class="fixed top-0 right-0 h-full w-72 bg-slate-900 border-l border-slate-800 z-50 flex flex-col shadow-2xl">
+    <!-- Drawer Header -->
+    <div class="flex items-center justify-between p-5 border-b border-slate-800">
+      <div class="flex items-center space-x-2.5">
+        <div class="w-8 h-8 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center">
+          <img src="/logo.svg" alt="GetHired" class="w-7 h-7 object-contain" />
+        </div>
+        <span class="font-black text-base bg-gradient-to-r from-white via-indigo-200 to-indigo-400 bg-clip-text text-transparent">GetHired</span>
+      </div>
+      <button onclick="closeDrawer()" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <!-- Drawer Body -->
+    <div class="flex-1 overflow-y-auto p-4 space-y-2">
+      <!-- Navigation Links -->
+      <a href="/" target="_top" onclick="closeDrawer()" class="flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white transition group">
+        <div class="w-8 h-8 rounded-lg bg-slate-800 group-hover:bg-slate-700 flex items-center justify-center flex-shrink-0 transition">
+          <i class="fa-solid fa-arrow-left text-xs text-slate-400 group-hover:text-white"></i>
+        </div>
+        <span class="text-sm font-medium">Home</span>
+      </a>
+      <a href="/creator" target="_top" onclick="closeDrawer()" class="flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-emerald-500/10 text-emerald-400 hover:text-emerald-300 transition group border border-transparent hover:border-emerald-500/20">
+        <div class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-shrink-0">
+          <i class="fa-solid fa-user-astronaut text-xs"></i>
+        </div>
+        <span class="text-sm font-medium">Meet Creator</span>
+      </a>
+
+      <div class="border-t border-slate-800 my-3"></div>
+
+      <!-- Profile Selector (mirrored in drawer) -->
+      <div class="px-4 py-3 rounded-xl bg-slate-800/60 border border-slate-700 space-y-2">
+        <div class="flex items-center space-x-2 text-xs text-slate-400 font-semibold uppercase tracking-wider">
+          <i class="fa-solid fa-id-badge text-indigo-400"></i>
+          <span>Active Profile</span>
+        </div>
+        <select id="profileSelectDrawer" onchange="switchProfile(this.value); document.getElementById('profileSelect').value = this.value;" class="w-full bg-slate-900 text-sm text-white font-medium focus:outline-none cursor-pointer rounded-lg border border-slate-700 px-3 py-2">
+          <option value="default">Loading...</option>
+        </select>
+        <button onclick="promptNewProfile(); closeDrawer();" class="w-full text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-lg flex items-center justify-center space-x-1.5 transition cursor-pointer">
+          <i class="fa-solid fa-plus text-[10px]"></i>
+          <span>New Profile</span>
+        </button>
+      </div>
+
+      <div class="border-t border-slate-800 my-3"></div>
+
+      <!-- Tabs in drawer for easy navigation -->
+      <p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold px-4 pb-1">Navigate to</p>
+      <button onclick="switchTab('triage'); closeDrawer();" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white transition text-left">
+        <i class="fa-solid fa-list-check text-indigo-400 w-4 text-center"></i>
+        <span class="text-sm font-medium">Job Triage</span>
+      </button>
+      <button onclick="switchTab('settings'); closeDrawer();" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white transition text-left">
+        <i class="fa-solid fa-microchip text-emerald-400 w-4 text-center"></i>
+        <span class="text-sm font-medium">AI & SMTP Keys</span>
+      </button>
+      <button onclick="switchTab('preferences'); closeDrawer();" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white transition text-left">
+        <i class="fa-solid fa-sliders text-amber-400 w-4 text-center"></i>
+        <span class="text-sm font-medium">Preferences & Filters</span>
+      </button>
+      <button onclick="switchTab('profile'); closeDrawer();" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white transition text-left">
+        <i class="fa-solid fa-address-card text-purple-400 w-4 text-center"></i>
+        <span class="text-sm font-medium">Candidate Profile & CV</span>
+      </button>
+    </div>
+
+    <!-- Drawer Footer: Auth -->
+    <div class="p-4 border-t border-slate-800">
+      <div id="drawerSignInBtn">
+        <button onclick="openAuthModal(); closeDrawer();" class="w-full flex items-center justify-center space-x-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-4 py-3 rounded-xl shadow-sm transition cursor-pointer">
+          <i class="fa-solid fa-right-to-bracket"></i>
+          <span>Sign In</span>
+        </button>
+      </div>
+      <div id="drawerUserMenu" class="hidden flex items-center justify-between bg-slate-800/80 rounded-xl p-3 border border-slate-700">
+        <div class="flex items-center space-x-2.5 min-w-0">
+          <img id="drawerUserAvatar" src="/logo.svg" alt="Avatar" class="w-8 h-8 rounded-full border border-slate-600 flex-shrink-0" />
+          <span id="drawerUserName" class="text-sm font-semibold text-white truncate">User</span>
+        </div>
+        <button onclick="handleLogout(); closeDrawer();" title="Sign Out" class="text-slate-400 hover:text-rose-400 p-1.5 rounded-lg hover:bg-slate-700 transition cursor-pointer flex-shrink-0">
+          <i class="fa-solid fa-power-off text-sm"></i>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- Top Navigation Header -->
   <header class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-30 shadow-md">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
       <!-- Brand Logo & Identity -->
-      <a href="/" target="_top" class="flex items-center space-x-3 group cursor-pointer transition">
-        <div class="w-10 h-10 rounded-xl overflow-hidden shadow-md group-hover:scale-105 transition transform flex items-center justify-center bg-indigo-600/20 border border-indigo-500/30">
-          <img src="/logo.svg" alt="GetHired Logo" class="w-10 h-10 object-contain" />
+      <a href="/" target="_top" class="flex items-center space-x-2 sm:space-x-3 group cursor-pointer transition flex-shrink-0">
+        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden shadow-md group-hover:scale-105 transition transform flex items-center justify-center bg-indigo-600/20 border border-indigo-500/30 flex-shrink-0">
+          <img src="/logo.svg" alt="GetHired Logo" class="w-9 h-9 sm:w-10 sm:h-10 object-contain" />
         </div>
         <div>
-          <div class="flex items-center space-x-2">
-            <span class="font-black text-lg tracking-tight bg-gradient-to-r from-white via-indigo-200 to-indigo-400 bg-clip-text text-transparent">GetHired</span>
-            <span class="text-[10px] uppercase font-bold tracking-wider bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-500/30">AI Copilot</span>
+          <div class="flex items-center space-x-1.5 sm:space-x-2">
+            <span class="font-black text-base sm:text-lg tracking-tight bg-gradient-to-r from-white via-indigo-200 to-indigo-400 bg-clip-text text-transparent">GetHired</span>
+            <span class="hidden xs:inline-block text-[9px] sm:text-[10px] uppercase font-bold tracking-wider bg-indigo-500/20 text-indigo-300 px-1.5 sm:px-2 py-0.5 rounded-full border border-indigo-500/30">AI Copilot</span>
           </div>
-          <p class="text-[11px] text-slate-400 font-medium leading-none hidden sm:block">Autonomous Job Discovery</p>
+          <p class="text-[10px] sm:text-[11px] text-slate-400 font-medium leading-none hidden sm:block">Autonomous Job Discovery</p>
         </div>
       </a>
 
       <!-- Right Header Actions -->
-      <div class="flex items-center space-x-2 sm:space-x-3">
-        <!-- Navigation to Home & Creator -->
+      <div class="flex items-center space-x-2 min-w-0">
+        <!-- Desktop-only Nav Links -->
         <a href="/" target="_top" class="text-xs text-slate-400 hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-slate-800 transition hidden md:flex items-center space-x-1.5">
           <i class="fa-solid fa-arrow-left text-xs"></i>
           <span>Home</span>
@@ -163,83 +307,127 @@
           <span>Meet Creator</span>
         </a>
 
-        <!-- Active User Profile Dropdown -->
-        <div class="flex items-center space-x-1.5 bg-slate-800/90 px-2.5 py-1.5 rounded-lg border border-slate-700 max-w-[210px] sm:max-w-[280px]">
+        <!-- Desktop Profile Dropdown -->
+        <div class="hidden md:flex items-center space-x-1 sm:space-x-1.5 bg-slate-800/90 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg border border-slate-700 max-w-[125px] xs:max-w-[170px] sm:max-w-[260px] flex-shrink min-w-0">
           <i class="fa-solid fa-id-badge text-indigo-400 text-xs flex-shrink-0"></i>
           <span class="text-xs text-slate-400 font-medium hidden lg:inline flex-shrink-0">Profile:</span>
           <select id="profileSelect" onchange="switchProfile(this.value)" class="bg-transparent text-xs sm:text-sm text-white font-medium focus:outline-none cursor-pointer truncate flex-1 min-w-0">
             <option value="default">Loading...</option>
           </select>
-          <button onclick="promptNewProfile()" title="Create New Persona Profile" class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-0.5 rounded flex-shrink-0 transition flex items-center space-x-1 cursor-pointer">
+          <button onclick="promptNewProfile()" title="Create New Persona Profile" class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-1.5 sm:px-2 py-0.5 rounded flex-shrink-0 transition flex items-center space-x-1 cursor-pointer">
             <i class="fa-solid fa-plus text-[10px]"></i>
             <span class="hidden sm:inline text-[11px]">New</span>
           </button>
         </div>
 
-        <!-- Quick AI Badge -->
+        <!-- Quick AI Badge (desktop xl only) -->
         <div id="headerAiBadge" onclick="switchTab('settings')" class="hidden xl:flex items-center space-x-1.5 text-xs bg-slate-800/90 hover:bg-slate-700 text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-700 cursor-pointer transition">
           <i class="fa-solid fa-brain text-emerald-400"></i>
           <span id="headerAiText">OpenAI</span>
         </div>
 
-        <!-- User Authentication Header Component -->
-        <div id="authHeaderContainer" class="flex items-center">
+        <!-- Desktop Auth -->
+        <div id="authHeaderContainer" class="hidden md:flex items-center flex-shrink-0">
           <!-- Unauthenticated State Button -->
-          <button id="headerSignInBtn" onclick="openAuthModal()" class="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm transition">
-            <i class="fa-solid fa-right-to-bracket"></i>
+          <button id="headerSignInBtn" onclick="openAuthModal()" class="flex items-center space-x-1.5 sm:space-x-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-2.5 sm:px-3 py-1.5 rounded-lg shadow-sm transition whitespace-nowrap">
+            <i class="fa-solid fa-right-to-bracket text-xs"></i>
             <span>Sign In</span>
           </button>
 
           <!-- Authenticated State User Menu -->
-          <div id="headerUserMenu" class="hidden flex items-center space-x-2">
-            <div class="flex items-center space-x-2 bg-slate-800/90 py-1 px-2.5 rounded-lg border border-slate-700">
-              <img id="headerUserAvatar" src="/logo.svg" alt="User Avatar" class="w-6 h-6 rounded-full object-cover border border-slate-600" />
-              <span id="headerUserName" class="text-xs font-semibold text-white max-w-[90px] sm:max-w-[130px] truncate">User</span>
+          <div id="headerUserMenu" class="hidden flex items-center space-x-1.5 sm:space-x-2">
+            <div class="flex items-center space-x-1.5 sm:space-x-2 bg-slate-800/90 py-1 px-2 sm:px-2.5 rounded-lg border border-slate-700">
+              <img id="headerUserAvatar" src="/logo.svg" alt="User Avatar" class="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover border border-slate-600 flex-shrink-0" />
+              <span id="headerUserName" class="text-xs font-semibold text-white max-w-[70px] xs:max-w-[100px] sm:max-w-[130px] truncate">User</span>
             </div>
-            <button onclick="handleLogout()" title="Sign Out" class="text-slate-400 hover:text-rose-400 text-xs px-2 py-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer">
+            <button onclick="handleLogout()" title="Sign Out" class="text-slate-400 hover:text-rose-400 text-xs p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer flex-shrink-0">
               <i class="fa-solid fa-power-off"></i>
             </button>
           </div>
         </div>
+
+        <!-- Mobile Burger Button -->
+        <button onclick="openDrawer()" class="md:hidden w-9 h-9 flex items-center justify-center rounded-xl bg-slate-800 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 transition cursor-pointer flex-shrink-0">
+          <i class="fa-solid fa-bars"></i>
+        </button>
       </div>
     </div>
   </header>
 
   <!-- Secondary Bar: Navigation Tabs & Real-time Stats -->
   <div class="bg-slate-900 border-b border-slate-800 shadow-sm">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row md:items-center justify-between py-2.5 gap-3">
-      <!-- Tabs Navigation -->
-      <nav class="flex space-x-1 sm:space-x-2 overflow-x-auto pb-1 md:pb-0">
-        <button onclick="switchTab('triage')" id="tabBtn-triage" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold bg-indigo-600 text-white shadow-sm shadow-indigo-500/20 flex items-center space-x-2 transition">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 flex flex-col md:flex-row md:items-center justify-between py-2 sm:py-2.5 gap-2.5 sm:gap-3">
+      <!-- Desktop Tabs Navigation -->
+      <nav class="desktop-tab-bar flex space-x-1 sm:space-x-2 overflow-x-auto no-scrollbar pb-1 md:pb-0">
+        <button onclick="switchTab('triage')" id="tabBtn-triage" class="tab-btn px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold bg-indigo-600 text-white shadow-sm shadow-indigo-500/20 flex items-center space-x-1.5 sm:space-x-2 transition whitespace-nowrap flex-shrink-0">
           <i class="fa-solid fa-list-check"></i>
           <span>Job Triage</span>
         </button>
-        <button onclick="switchTab('settings')" id="tabBtn-settings" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-800/80 flex items-center space-x-2 transition">
+        <button onclick="switchTab('settings')" id="tabBtn-settings" class="tab-btn px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-800/80 flex items-center space-x-1.5 sm:space-x-2 transition whitespace-nowrap flex-shrink-0">
           <i class="fa-solid fa-microchip"></i>
           <span>AI & SMTP Keys</span>
         </button>
-        <button onclick="switchTab('preferences')" id="tabBtn-preferences" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-800/80 flex items-center space-x-2 transition">
+        <button onclick="switchTab('preferences')" id="tabBtn-preferences" class="tab-btn px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-800/80 flex items-center space-x-1.5 sm:space-x-2 transition whitespace-nowrap flex-shrink-0">
           <i class="fa-solid fa-sliders"></i>
           <span>Preferences & Filters</span>
         </button>
-        <button onclick="switchTab('profile')" id="tabBtn-profile" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-800/80 flex items-center space-x-2 transition">
+        <button onclick="switchTab('profile')" id="tabBtn-profile" class="tab-btn px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-800/80 flex items-center space-x-1.5 sm:space-x-2 transition whitespace-nowrap flex-shrink-0">
           <i class="fa-solid fa-address-card"></i>
           <span>Candidate Profile & CV</span>
         </button>
       </nav>
 
-      <!-- Stats Pill Bar -->
-      <div id="statsBar" class="flex items-center space-x-2 text-xs overflow-x-auto pb-1 md:pb-0">
-        <span class="bg-emerald-950/70 text-emerald-400 px-2.5 py-1 rounded-md border border-emerald-800/60 whitespace-nowrap">Qualified: <strong id="statQualified" class="font-bold">0</strong></span>
-        <span class="bg-amber-950/70 text-amber-400 px-2.5 py-1 rounded-md border border-amber-800/60 whitespace-nowrap">Pending: <strong id="statPending" class="font-bold">0</strong></span>
-        <span class="bg-blue-950/70 text-blue-400 px-2.5 py-1 rounded-md border border-blue-800/60 whitespace-nowrap">Applied: <strong id="statApplied" class="font-bold">0</strong></span>
-        <span class="bg-slate-800/70 text-slate-400 px-2.5 py-1 rounded-md border border-slate-700 whitespace-nowrap">Skipped: <strong id="statSkipped" class="font-bold">0</strong></span>
+      <!-- Stats Pill Bar (desktop only in secondary bar) -->
+      <div id="statsBar" class="hidden md:flex items-center space-x-1.5 sm:space-x-2 text-[11px] sm:text-xs overflow-x-auto no-scrollbar pb-1 md:pb-0">
+        <span class="bg-emerald-950/70 text-emerald-400 px-2 sm:px-2.5 py-1 rounded-md border border-emerald-800/60 whitespace-nowrap flex-shrink-0">Qualified: <strong id="statQualified" class="font-bold">0</strong></span>
+        <span class="bg-amber-950/70 text-amber-400 px-2 sm:px-2.5 py-1 rounded-md border border-amber-800/60 whitespace-nowrap flex-shrink-0">Pending: <strong id="statPending" class="font-bold">0</strong></span>
+        <span class="bg-blue-950/70 text-blue-400 px-2 sm:px-2.5 py-1 rounded-md border border-blue-800/60 whitespace-nowrap flex-shrink-0">Applied: <strong id="statApplied" class="font-bold">0</strong></span>
+        <span class="bg-slate-800/70 text-slate-400 px-2 sm:px-2.5 py-1 rounded-md border border-slate-700 whitespace-nowrap flex-shrink-0">Skipped: <strong id="statSkipped" class="font-bold">0</strong></span>
       </div>
     </div>
   </div>
 
+  <!-- Mobile Stats Bar (shown above bottom tabs on mobile) -->
+  <div class="md:hidden bg-slate-950 border-b border-slate-800 px-3 py-2">
+    <div class="flex items-center space-x-1.5 text-[10px] overflow-x-auto no-scrollbar">
+      <span class="bg-emerald-950/70 text-emerald-400 px-2 py-1 rounded-md border border-emerald-800/60 whitespace-nowrap flex-shrink-0">✅ <strong id="statQualifiedM" class="font-bold">0</strong></span>
+      <span class="bg-amber-950/70 text-amber-400 px-2 py-1 rounded-md border border-amber-800/60 whitespace-nowrap flex-shrink-0">⏳ <strong id="statPendingM" class="font-bold">0</strong></span>
+      <span class="bg-blue-950/70 text-blue-400 px-2 py-1 rounded-md border border-blue-800/60 whitespace-nowrap flex-shrink-0">📤 <strong id="statAppliedM" class="font-bold">0</strong></span>
+      <span class="bg-slate-800/70 text-slate-400 px-2 py-1 rounded-md border border-slate-700 whitespace-nowrap flex-shrink-0">⏭ <strong id="statSkippedM" class="font-bold">0</strong></span>
+    </div>
+  </div>
+
+  <!-- Mobile Bottom Tab Bar -->
+  <nav class="mobile-tab-bar fixed bottom-0 left-0 right-0 z-30 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 px-2 py-2 items-center justify-around safe-area-inset-bottom">
+    <button onclick="switchTab('triage')" id="btmTab-triage" class="btm-tab active flex-1 flex flex-col items-center gap-1 py-1 px-1 rounded-xl transition cursor-pointer">
+      <div class="btm-tab-icon w-10 h-7 rounded-lg bg-indigo-500/15 border border-indigo-500/35 flex items-center justify-center transition">
+        <i class="fa-solid fa-list-check text-xs text-indigo-400"></i>
+      </div>
+      <span class="text-[9px] font-semibold text-indigo-400 leading-none">Triage</span>
+    </button>
+    <button onclick="switchTab('settings')" id="btmTab-settings" class="btm-tab flex-1 flex flex-col items-center gap-1 py-1 px-1 rounded-xl transition cursor-pointer text-slate-400 hover:text-white">
+      <div class="btm-tab-icon w-10 h-7 rounded-lg bg-transparent border border-transparent flex items-center justify-center transition">
+        <i class="fa-solid fa-microchip text-xs"></i>
+      </div>
+      <span class="text-[9px] font-semibold leading-none">AI & Keys</span>
+    </button>
+    <button onclick="switchTab('preferences')" id="btmTab-preferences" class="btm-tab flex-1 flex flex-col items-center gap-1 py-1 px-1 rounded-xl transition cursor-pointer text-slate-400 hover:text-white">
+      <div class="btm-tab-icon w-10 h-7 rounded-lg bg-transparent border border-transparent flex items-center justify-center transition">
+        <i class="fa-solid fa-sliders text-xs"></i>
+      </div>
+      <span class="text-[9px] font-semibold leading-none">Prefs</span>
+    </button>
+    <button onclick="switchTab('profile')" id="btmTab-profile" class="btm-tab flex-1 flex flex-col items-center gap-1 py-1 px-1 rounded-xl transition cursor-pointer text-slate-400 hover:text-white">
+      <div class="btm-tab-icon w-10 h-7 rounded-lg bg-transparent border border-transparent flex items-center justify-center transition">
+        <i class="fa-solid fa-address-card text-xs"></i>
+      </div>
+      <span class="text-[9px] font-semibold leading-none">Profile</span>
+    </button>
+  </nav>
+
+
   <!-- Main Content Container -->
-  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
 
     <!-- =================================================================== -->
     <!-- TAB 1: JOB TRIAGE & DISCOVERY                                      -->
@@ -275,21 +463,23 @@
       </div>
 
       <!-- Action Discovery Banner -->
-      <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-6 mb-6 text-white shadow-lg border border-indigo-900/50 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-4 sm:p-6 mb-4 sm:mb-6 text-white shadow-lg border border-indigo-900/50 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         <div>
           <div class="flex items-center space-x-2">
             <span class="bg-indigo-500/30 text-indigo-300 text-xs px-2.5 py-0.5 rounded-full font-semibold border border-indigo-400/30">Autonomous Scanner</span>
             <span id="activeAiLabel" class="text-xs text-slate-300">Using OpenAI (gpt-4o-mini)</span>
           </div>
-          <h2 class="text-xl font-bold mt-1 text-white">Find & Evaluate High-Signal Remote Roles</h2>
-          <p class="text-xs text-slate-300 mt-0.5">Scrapes ATS endpoints, remote boards & LinkedIn, applies your regional preferences, and drafts cold pitch emails.</p>
+          <h2 class="text-lg sm:text-xl font-bold mt-1 text-white">Find & Evaluate High-Signal Remote Roles</h2>
+          <p class="text-xs text-slate-300 mt-0.5 leading-relaxed">Scrapes ATS endpoints, remote boards & LinkedIn, applies your regional preferences, and drafts cold pitch emails.</p>
         </div>
 
-        <div class="flex flex-col sm:flex-row items-center gap-2.5 w-full md:w-auto">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full md:w-auto flex-shrink-0">
           <!-- Days Interval Selector -->
-          <div class="flex items-center bg-slate-950/90 border border-slate-700/80 rounded-xl px-3 py-2 space-x-2 w-full sm:w-auto">
-            <i class="fa-solid fa-clock-rotate-left text-xs text-slate-400"></i>
-            <span class="text-xs text-slate-300 font-medium">Interval:</span>
+          <div class="flex items-center justify-between sm:justify-start bg-slate-950/90 border border-slate-700/80 rounded-xl px-3 py-2 space-x-2 w-full sm:w-auto">
+            <div class="flex items-center space-x-2">
+              <i class="fa-solid fa-clock-rotate-left text-xs text-slate-400"></i>
+              <span class="text-xs text-slate-300 font-medium">Interval:</span>
+            </div>
             <select id="search_days_filter" onchange="onSearchDaysChanged(this.value)" class="bg-transparent text-xs font-bold text-white focus:outline-none cursor-pointer">
               <option value="1" class="bg-slate-900 text-white">Last 1 day</option>
               <option value="3" class="bg-slate-900 text-white">Last 3 days</option>
@@ -300,7 +490,7 @@
             </select>
           </div>
 
-          <button onclick="triggerDiscovery()" id="searchDiscoverBtn" class="w-full sm:w-auto flex items-center justify-center space-x-2 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold px-6 py-3.5 rounded-xl shadow-lg shadow-indigo-600/30 transition transform flex-shrink-0 cursor-pointer">
+          <button onclick="triggerDiscovery()" id="searchDiscoverBtn" class="w-full sm:w-auto flex items-center justify-center space-x-2 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold px-5 sm:px-6 py-3 sm:py-3.5 rounded-xl shadow-lg shadow-indigo-600/30 transition transform flex-shrink-0 cursor-pointer text-xs sm:text-sm whitespace-nowrap">
             <i class="fa-solid fa-magnifying-glass"></i>
             <span>Search & Evaluate Jobs Now</span>
           </button>
@@ -308,12 +498,12 @@
       </div>
 
       <!-- Loading State Overlay / Card -->
-      <div id="loadingOverlay" class="hidden mb-6 bg-white rounded-2xl p-8 border-2 border-indigo-400 pulse-border text-center shadow-lg">
-        <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-indigo-50 text-indigo-600 mb-3">
+      <div id="loadingOverlay" class="hidden mb-6 bg-white rounded-2xl p-6 sm:p-8 border-2 border-indigo-400 pulse-border text-center shadow-lg">
+        <div class="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-indigo-50 text-indigo-600 mb-3">
           <i class="fa-solid fa-spinner fa-spin text-2xl"></i>
         </div>
-        <h3 class="text-lg font-bold text-slate-900" id="loadingTitle">Scraping Remote Feeds & Evaluating Technical Fit...</h3>
-        <p class="text-xs text-slate-500 max-w-md mx-auto mt-1" id="loadingSubtitle">
+        <h3 class="text-base sm:text-lg font-bold text-slate-900" id="loadingTitle">Scraping Remote Feeds & Evaluating Technical Fit...</h3>
+        <p class="text-xs text-slate-500 max-w-md mx-auto mt-1 leading-relaxed" id="loadingSubtitle">
           Fetching from Greenhouse, Lever, RemoteOK, Jobicy, WeWorkRemotely, and LinkedIn. Generating cold pitches with your selected AI model.
         </p>
         <div class="mt-4 flex items-center justify-center space-x-2 text-xs text-indigo-600 font-medium">
@@ -323,17 +513,17 @@
       </div>
 
       <!-- Status Filter Tabs & Header -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 mb-4">
         <div class="flex items-center space-x-2">
-          <h3 class="text-lg font-bold text-white">Job Opportunities</h3>
+          <h3 class="text-base sm:text-lg font-bold text-white">Job Opportunities</h3>
           <span id="jobCountBadge" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">0</span>
         </div>
 
-        <div class="flex space-x-1.5 bg-slate-900 p-1 rounded-lg border border-slate-800">
-          <button onclick="filterJobs('qualified')" class="status-filter px-3 py-1 text-xs font-semibold rounded-md bg-indigo-600 text-white shadow-sm transition cursor-pointer" data-status="qualified">Qualified</button>
-          <button onclick="filterJobs('pending')" class="status-filter px-3 py-1 text-xs font-semibold rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer" data-status="pending">Pending</button>
-          <button onclick="filterJobs('applied')" class="status-filter px-3 py-1 text-xs font-semibold rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer" data-status="applied">Applied</button>
-          <button onclick="filterJobs('skipped')" class="status-filter px-3 py-1 text-xs font-semibold rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer" data-status="skipped">Skipped</button>
+        <div class="flex space-x-1 sm:space-x-1.5 bg-slate-900 p-1 rounded-lg border border-slate-800 overflow-x-auto no-scrollbar w-full sm:w-auto">
+          <button onclick="filterJobs('qualified')" class="status-filter px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-md bg-indigo-600 text-white shadow-sm transition cursor-pointer flex-1 sm:flex-initial text-center whitespace-nowrap" data-status="qualified">Qualified</button>
+          <button onclick="filterJobs('pending')" class="status-filter px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer flex-1 sm:flex-initial text-center whitespace-nowrap" data-status="pending">Pending</button>
+          <button onclick="filterJobs('applied')" class="status-filter px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer flex-1 sm:flex-initial text-center whitespace-nowrap" data-status="applied">Applied</button>
+          <button onclick="filterJobs('skipped')" class="status-filter px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer flex-1 sm:flex-initial text-center whitespace-nowrap" data-status="skipped">Skipped</button>
         </div>
       </div>
 
@@ -353,7 +543,7 @@
       <div class="max-w-4xl mx-auto space-y-6">
 
         <!-- AI Provider Card -->
-        <div class="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="bg-white p-4 sm:p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm">
           <div class="flex items-center justify-between mb-4">
             <div>
               <h3 class="text-lg font-bold text-slate-900">AI Model & Reasoning Provider</h3>
@@ -367,45 +557,45 @@
             <!-- Provider Selection Cards -->
             <div>
               <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2.5">Select Provider</label>
-              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
                 <!-- OpenAI -->
-                <label class="ai-provider-card flex flex-col p-3.5 rounded-xl border-2 cursor-pointer transition border-slate-200 hover:border-slate-300 bg-slate-50" data-provider="openai">
+                <label class="ai-provider-card flex flex-col p-3 sm:p-3.5 rounded-xl border-2 cursor-pointer transition border-slate-200 hover:border-slate-300 bg-slate-50" data-provider="openai">
                   <input type="radio" name="ai_provider" value="openai" class="hidden" onchange="onAiProviderChanged(this.value)" checked>
                   <div class="flex items-center justify-between mb-1">
-                    <span class="font-bold text-sm text-slate-900">OpenAI</span>
-                    <i class="fa-solid fa-check-circle text-indigo-600 opacity-0 check-icon"></i>
+                    <span class="font-bold text-xs sm:text-sm text-slate-900">OpenAI</span>
+                    <i class="fa-solid fa-check-circle text-indigo-600 opacity-0 check-icon text-xs sm:text-sm"></i>
                   </div>
-                  <span class="text-xs text-slate-500">GPT-4o Mini, GPT-4o</span>
+                  <span class="text-[11px] sm:text-xs text-slate-500">GPT-4o Mini, GPT-4o</span>
                 </label>
 
                 <!-- Anthropic Claude -->
-                <label class="ai-provider-card flex flex-col p-3.5 rounded-xl border-2 cursor-pointer transition border-slate-200 hover:border-slate-300 bg-slate-50" data-provider="claude">
+                <label class="ai-provider-card flex flex-col p-3 sm:p-3.5 rounded-xl border-2 cursor-pointer transition border-slate-200 hover:border-slate-300 bg-slate-50" data-provider="claude">
                   <input type="radio" name="ai_provider" value="claude" class="hidden" onchange="onAiProviderChanged(this.value)">
                   <div class="flex items-center justify-between mb-1">
-                    <span class="font-bold text-sm text-slate-900">Claude</span>
-                    <i class="fa-solid fa-check-circle text-indigo-600 opacity-0 check-icon"></i>
+                    <span class="font-bold text-xs sm:text-sm text-slate-900">Claude</span>
+                    <i class="fa-solid fa-check-circle text-indigo-600 opacity-0 check-icon text-xs sm:text-sm"></i>
                   </div>
-                  <span class="text-xs text-slate-500">Sonnet 3.5, Haiku 3.5</span>
+                  <span class="text-[11px] sm:text-xs text-slate-500">Sonnet 3.5, Haiku 3.5</span>
                 </label>
 
                 <!-- Google Gemini -->
-                <label class="ai-provider-card flex flex-col p-3.5 rounded-xl border-2 cursor-pointer transition border-slate-200 hover:border-slate-300 bg-slate-50" data-provider="gemini">
+                <label class="ai-provider-card flex flex-col p-3 sm:p-3.5 rounded-xl border-2 cursor-pointer transition border-slate-200 hover:border-slate-300 bg-slate-50" data-provider="gemini">
                   <input type="radio" name="ai_provider" value="gemini" class="hidden" onchange="onAiProviderChanged(this.value)">
                   <div class="flex items-center justify-between mb-1">
-                    <span class="font-bold text-sm text-slate-900">Gemini</span>
-                    <i class="fa-solid fa-check-circle text-indigo-600 opacity-0 check-icon"></i>
+                    <span class="font-bold text-xs sm:text-sm text-slate-900">Gemini</span>
+                    <i class="fa-solid fa-check-circle text-indigo-600 opacity-0 check-icon text-xs sm:text-sm"></i>
                   </div>
-                  <span class="text-xs text-slate-500">Gemini 2.0 Flash, 1.5 Pro</span>
+                  <span class="text-[11px] sm:text-xs text-slate-500">Gemini 2.0 Flash, 1.5 Pro</span>
                 </label>
 
                 <!-- xAI Grok -->
-                <label class="ai-provider-card flex flex-col p-3.5 rounded-xl border-2 cursor-pointer transition border-slate-200 hover:border-slate-300 bg-slate-50" data-provider="grok">
+                <label class="ai-provider-card flex flex-col p-3 sm:p-3.5 rounded-xl border-2 cursor-pointer transition border-slate-200 hover:border-slate-300 bg-slate-50" data-provider="grok">
                   <input type="radio" name="ai_provider" value="grok" class="hidden" onchange="onAiProviderChanged(this.value)">
                   <div class="flex items-center justify-between mb-1">
-                    <span class="font-bold text-sm text-slate-900">Grok (xAI)</span>
-                    <i class="fa-solid fa-check-circle text-indigo-600 opacity-0 check-icon"></i>
+                    <span class="font-bold text-xs sm:text-sm text-slate-900">Grok (xAI)</span>
+                    <i class="fa-solid fa-check-circle text-indigo-600 opacity-0 check-icon text-xs sm:text-sm"></i>
                   </div>
-                  <span class="text-xs text-slate-500">Grok 2 Latest</span>
+                  <span class="text-[11px] sm:text-xs text-slate-500">Grok 2 Latest</span>
                 </label>
               </div>
             </div>
@@ -451,12 +641,12 @@
 
             <!-- Outbound Email (SMTP) Configuration -->
             <div class="border-t border-slate-200 pt-6">
-              <div class="flex items-center justify-between mb-3">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3">
                 <div>
                   <h4 class="text-base font-bold text-slate-900">Outbound Email (SMTP) Credentials</h4>
                   <p class="text-xs text-slate-500">Used to dispatch 1-click cold email applications with your CV attached directly from your email account.</p>
                 </div>
-                <button type="button" onclick="testSmtp()" id="testSmtpBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-300 transition flex items-center space-x-1.5">
+                <button type="button" onclick="testSmtp()" id="testSmtpBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-300 transition flex items-center space-x-1.5 w-full sm:w-auto justify-center">
                   <i class="fa-solid fa-envelope-circle-check"></i>
                   <span>Test Connection</span>
                 </button>
@@ -464,7 +654,7 @@
 
               <div id="smtpResult" class="mb-4 text-xs hidden"></div>
 
-              <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                 <div>
                   <label class="block text-xs font-semibold text-slate-700 mb-1">SMTP Host</label>
                   <input type="text" id="smtp_host" placeholder="smtp.gmail.com" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
@@ -518,7 +708,7 @@
                   <i id="testEmailChevron" class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200"></i>
                 </button>
 
-                <div id="testEmailDrawer" class="hidden mt-3 p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                <div id="testEmailDrawer" class="hidden mt-3 p-3.5 sm:p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label class="block text-xs font-semibold text-slate-700 mb-1">Recipient Email Address</label>
@@ -541,7 +731,7 @@
                       <span>Attach my CV.pdf to test attachment delivery</span>
                     </label>
 
-                    <button type="button" onclick="sendLiveTestEmailFromUI()" id="sendLiveTestBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-4 py-2 rounded-lg shadow-sm transition flex items-center space-x-1.5 justify-center">
+                    <button type="button" onclick="sendLiveTestEmailFromUI()" id="sendLiveTestBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-4 py-2 rounded-lg shadow-sm transition flex items-center space-x-1.5 justify-center w-full sm:w-auto">
                       <i class="fa-solid fa-paper-plane"></i>
                       <span>Send Live Test Email</span>
                     </button>
@@ -554,7 +744,7 @@
 
             <!-- Submit Button -->
             <div class="flex justify-end pt-3">
-              <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-6 py-2.5 rounded-xl shadow-sm transition">
+              <button type="submit" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-6 py-2.5 rounded-xl shadow-sm transition">
                 <i class="fa-solid fa-floppy-disk mr-1.5"></i> Save AI & Email Settings
               </button>
             </div>
@@ -568,7 +758,7 @@
     <!-- TAB 3: PREFERENCES & DETERMINISTIC FILTERS                          -->
     <!-- =================================================================== -->
     <div id="tab-preferences" class="tab-content hidden">
-      <div class="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm max-w-4xl mx-auto">
+      <div class="bg-white p-4 sm:p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm max-w-4xl mx-auto">
         <h3 class="font-bold text-slate-900 text-lg mb-1">Target Preferences & Regional Filters</h3>
         <p class="text-xs text-slate-500 mb-6">Jobs not matching these deterministic criteria are discarded before invoking any LLM, saving you API costs.</p>
 
@@ -577,7 +767,7 @@
           <!-- Target Countries -->
           <div>
             <label class="block text-sm font-bold text-slate-900 mb-2">Target Countries & Remote Reach</label>
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+            <div class="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-2.5">
               <label class="flex items-center space-x-2 text-xs text-slate-700 p-2.5 bg-slate-50 rounded-xl border border-slate-200 hover:bg-slate-100 cursor-pointer">
                 <input type="checkbox" name="target_countries" value="Belgium" class="rounded text-indigo-600"> <span>🇧🇪 Belgium</span>
               </label>
@@ -620,7 +810,7 @@
           <!-- Employment Types -->
           <div class="border-t border-slate-200 pt-4">
             <label class="block text-sm font-bold text-slate-900 mb-2">Employment Types</label>
-            <div class="flex flex-wrap gap-4">
+            <div class="flex flex-wrap gap-3 sm:gap-4">
               <label class="flex items-center space-x-2 text-xs text-slate-700">
                 <input type="checkbox" name="employment_types" value="full-time" class="rounded text-indigo-600"> <span>Full-Time</span>
               </label>
@@ -636,7 +826,7 @@
           <!-- Compensation -->
           <div class="border-t border-slate-200 pt-4">
             <label class="block text-sm font-bold text-slate-900 mb-2">Compensation & Rate Boundaries</label>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
               <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Currency</label>
                 <select id="pref_currency" class="w-full text-sm px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
@@ -662,7 +852,7 @@
           </div>
 
           <!-- Keywords & Match Threshold -->
-          <div class="border-t border-slate-200 pt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="border-t border-slate-200 pt-4 grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
             <div>
               <label class="block text-xs font-semibold text-slate-700 mb-1">Mandatory Keywords (comma separated)</label>
               <input type="text" id="pref_required_keywords" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="React Native, Expo" />
@@ -674,7 +864,7 @@
           </div>
 
           <div class="flex justify-end pt-3">
-            <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-6 py-2.5 rounded-xl shadow-sm transition">
+            <button type="submit" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-6 py-2.5 rounded-xl shadow-sm transition">
               <i class="fa-solid fa-check mr-1.5"></i> Save Preferences
             </button>
           </div>
@@ -689,22 +879,22 @@
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         <!-- Left: CV Upload Box -->
-        <div class="bg-white p-6 sm:p-7 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+        <div class="bg-white p-4 sm:p-6 sm:p-7 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
           <h3 class="font-bold text-slate-900 text-base mb-1">Resume / CV Asset</h3>
           <p class="text-xs text-slate-500 mb-4">Upload your PDF resume. It will be attached when you 1-click dispatch cold emails.</p>
 
-          <div id="dropZone" class="flex-1 border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-900/60 hover:bg-indigo-950/20 min-h-[190px] relative overflow-hidden">
+          <div id="dropZone" class="flex-1 border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-xl p-4 sm:p-5 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-900/60 hover:bg-indigo-950/20 min-h-[160px] sm:min-h-[190px] relative overflow-hidden">
             <!-- Idle Upload State -->
             <div id="dropZoneIdle" class="flex flex-col items-center">
-              <i class="fa-solid fa-cloud-arrow-up text-4xl text-indigo-400 mb-2"></i>
-              <span class="text-sm font-bold text-slate-200">Drop your resume PDF here</span>
-              <span class="text-xs text-slate-400 mt-1">or click to browse from your device</span>
-              <span class="text-[11px] text-indigo-400/80 mt-2 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">Supports PDF format</span>
+              <i class="fa-solid fa-cloud-arrow-up text-3xl sm:text-4xl text-indigo-400 mb-2"></i>
+              <span class="text-xs sm:text-sm font-bold text-slate-200">Drop your resume PDF here</span>
+              <span class="text-[11px] sm:text-xs text-slate-400 mt-1">or click to browse from your device</span>
+              <span class="text-[10px] sm:text-[11px] text-indigo-400/80 mt-2 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">Supports PDF format</span>
             </div>
 
             <!-- Uploading Progress State -->
             <div id="dropZoneProgress" class="hidden w-full flex-col items-center px-4 py-2">
-              <i class="fa-solid fa-circle-notch fa-spin text-3xl text-indigo-400 mb-2"></i>
+              <i class="fa-solid fa-circle-notch fa-spin text-2xl sm:text-3xl text-indigo-400 mb-2"></i>
               <span class="text-xs font-bold text-white mb-1">Uploading Resume...</span>
               <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden border border-slate-700 my-2">
                 <div id="cvProgressBar" class="bg-indigo-600 h-2.5 rounded-full transition-all duration-200" style="width: 0%"></div>
@@ -714,10 +904,10 @@
 
             <!-- Attached File State -->
             <div id="dropZoneAttached" class="hidden flex-col items-center">
-              <div class="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-2xl mb-2">
+              <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-xl sm:text-2xl mb-2">
                 <i class="fa-solid fa-file-circle-check"></i>
               </div>
-              <span id="cvAttachedName" class="text-xs font-bold text-white max-w-[210px] truncate">resume.pdf</span>
+              <span id="cvAttachedName" class="text-xs font-bold text-white max-w-[180px] sm:max-w-[210px] truncate">resume.pdf</span>
               <span id="cvAttachedSize" class="text-[11px] text-emerald-400 font-mono mt-0.5 font-semibold">Ready & Attached</span>
               <span class="text-[11px] text-slate-400 mt-2 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 hover:text-white transition">Click to replace PDF</span>
             </div>
@@ -732,12 +922,12 @@
         </div>
 
         <!-- Right: Profile Form -->
-        <div class="lg:col-span-2 bg-white p-6 sm:p-7 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="lg:col-span-2 bg-white p-4 sm:p-6 sm:p-7 rounded-2xl border border-slate-200 shadow-sm">
           <h3 class="font-bold text-slate-900 text-base mb-1">Candidate Profile</h3>
           <p class="text-xs text-slate-500 mb-5">The AI reads this master profile to customize pitches with your exact real-world project accomplishments.</p>
 
           <form id="profileForm" onsubmit="saveProfileForm(event)" class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Full Name</label>
                 <input type="text" id="prof_name" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
@@ -775,7 +965,7 @@
             </div>
 
             <div class="flex justify-end pt-2">
-              <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-6 py-2.5 rounded-xl shadow-sm transition">
+              <button type="submit" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-6 py-2.5 rounded-xl shadow-sm transition">
                 <i class="fa-solid fa-save mr-1.5"></i> Save Profile
               </button>
             </div>
@@ -790,19 +980,22 @@
   <!-- =================================================================== -->
   <!-- AUTHENTICATION MODAL (Google, GitHub, and Passwordless OTP)        -->
   <!-- =================================================================== -->
-  <div id="authModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
-    <div class="bg-white rounded-3xl max-w-md w-full p-7 sm:p-8 shadow-2xl border border-slate-200 relative transform transition-all">
+  <!-- =================================================================== -->
+  <!-- AUTHENTICATION MODAL (Google, GitHub, and Passwordless OTP)        -->
+  <!-- =================================================================== -->
+  <div id="authModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-3 sm:p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-5 sm:p-8 shadow-2xl border border-slate-200 relative transform transition-all max-h-[90vh] overflow-y-auto">
       <!-- Close Button -->
-      <button onclick="closeAuthModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-700 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition">
+      <button onclick="closeAuthModal()" class="absolute top-4 right-4 sm:top-5 sm:right-5 text-slate-400 hover:text-slate-700 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition">
         <i class="fa-solid fa-xmark text-lg"></i>
       </button>
 
       <!-- Modal Header -->
-      <div class="text-center mb-6">
-        <div class="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 p-2 mx-auto flex items-center justify-center mb-3 shadow-inner">
-          <img src="/logo.svg" alt="GetHired Logo" class="w-10 h-10 object-contain" />
+      <div class="text-center mb-5 sm:mb-6">
+        <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-indigo-50 border border-indigo-100 p-2 mx-auto flex items-center justify-center mb-3 shadow-inner">
+          <img src="/logo.svg" alt="GetHired Logo" class="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
         </div>
-        <h3 class="text-2xl font-black text-slate-900 tracking-tight">Sign in to GetHired</h3>
+        <h3 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Sign in to GetHired</h3>
         <p class="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
           Save your candidate profile, target filters, and AI outreach pitches securely across all your devices.
         </p>
@@ -811,7 +1004,7 @@
       <!-- OAuth 1-Click Buttons -->
       <div class="space-y-3">
         <!-- Continue with Google -->
-        <a href="/api/auth/google" class="w-full flex items-center justify-center space-x-3 bg-white hover:bg-slate-50 active:scale-[0.99] border border-slate-300 text-slate-700 font-bold text-sm py-3 px-4 rounded-xl shadow-sm transition">
+        <a href="/api/auth/google" class="w-full flex items-center justify-center space-x-3 bg-white hover:bg-slate-50 active:scale-[0.99] border border-slate-300 text-slate-700 font-bold text-xs sm:text-sm py-2.5 sm:py-3 px-4 rounded-xl shadow-sm transition">
           <svg class="w-4 h-4" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
             <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -822,14 +1015,14 @@
         </a>
 
         <!-- Continue with GitHub -->
-        <a href="/api/auth/github" class="w-full flex items-center justify-center space-x-3 bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-bold text-sm py-3 px-4 rounded-xl shadow-sm transition">
+        <a href="/api/auth/github" class="w-full flex items-center justify-center space-x-3 bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-bold text-xs sm:text-sm py-2.5 sm:py-3 px-4 rounded-xl shadow-sm transition">
           <i class="fa-brands fa-github text-base"></i>
           <span>Continue with GitHub</span>
         </a>
       </div>
 
       <!-- Divider -->
-      <div class="relative my-6 text-center">
+      <div class="relative my-5 sm:my-6 text-center">
         <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-200"></div></div>
         <span class="relative bg-white px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">or with email code</span>
       </div>
@@ -851,8 +1044,8 @@
         <!-- Step 2: Verify Code (Hidden Initially) -->
         <form id="otpVerifyForm" onsubmit="handleVerifyOtp(event)" class="hidden space-y-3">
           <div class="p-3 bg-indigo-50 rounded-xl border border-indigo-200 text-xs text-indigo-900 flex items-center justify-between">
-            <span>Code sent to <strong id="otpTargetEmail"></strong></span>
-            <button type="button" onclick="resetOtpStep()" class="text-indigo-600 hover:underline font-bold text-[11px]">Change</button>
+            <span class="truncate mr-2">Code sent to <strong id="otpTargetEmail"></strong></span>
+            <button type="button" onclick="resetOtpStep()" class="text-indigo-600 hover:underline font-bold text-[11px] flex-shrink-0">Change</button>
           </div>
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1">Enter 6-Digit Code</label>
@@ -866,7 +1059,7 @@
       </div>
 
       <!-- Legal Footnote -->
-      <p class="text-[11px] text-slate-400 text-center mt-5">
+      <p class="text-[11px] text-slate-400 text-center mt-4 sm:mt-5">
         By continuing, you agree to GetHired's Open Source terms and local-first privacy architecture.
       </p>
     </div>
@@ -875,25 +1068,25 @@
   <!-- =================================================================== -->
   <!-- SMTP GMAIL APP PASSWORD & ENCRYPTION HELP MODAL                     -->
   <!-- =================================================================== -->
-  <div id="smtpHelpModal" onclick="if(event.target===this)closeSmtpHelpModal()" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
-    <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 relative transform transition-all">
-      <button onclick="closeSmtpHelpModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-700 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition">
+  <div id="smtpHelpModal" onclick="if(event.target===this)closeSmtpHelpModal()" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-3 sm:p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-7 shadow-2xl border border-slate-200 relative transform transition-all max-h-[90vh] overflow-y-auto">
+      <button onclick="closeSmtpHelpModal()" class="absolute top-4 right-4 sm:top-5 sm:right-5 text-slate-400 hover:text-slate-700 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition">
         <i class="fa-solid fa-xmark text-lg"></i>
       </button>
 
       <div class="flex items-center gap-3 mb-4">
-        <div class="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shadow-sm">
-          <i class="fa-solid fa-key text-lg"></i>
+        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shadow-sm flex-shrink-0">
+          <i class="fa-solid fa-key text-base sm:text-lg"></i>
         </div>
         <div>
-          <h3 class="text-lg font-black text-slate-900">Gmail App Password Setup</h3>
-          <p class="text-xs text-slate-500">How to generate a 16-character password for automated job outreach</p>
+          <h3 class="text-base sm:text-lg font-black text-slate-900">Gmail App Password Setup</h3>
+          <p class="text-[11px] sm:text-xs text-slate-500">How to generate a 16-character password for automated job outreach</p>
         </div>
       </div>
 
       <!-- Security Guarantee Banner -->
-      <div class="mb-4 bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 flex items-start gap-3">
-        <i class="fa-solid fa-shield-halved text-emerald-600 text-lg mt-0.5"></i>
+      <div class="mb-4 bg-emerald-50 border border-emerald-200 rounded-xl p-3 sm:p-3.5 flex items-start gap-2.5 sm:gap-3">
+        <i class="fa-solid fa-shield-halved text-emerald-600 text-base sm:text-lg mt-0.5 flex-shrink-0"></i>
         <div>
           <h4 class="text-xs font-bold text-emerald-900">End-to-End Encrypted & Zero-Knowledge</h4>
           <p class="text-[11px] text-emerald-800 leading-relaxed mt-0.5">
@@ -903,13 +1096,13 @@
       </div>
 
       <!-- Step-by-Step Instructions -->
-      <div class="space-y-2.5 text-xs text-slate-700 bg-slate-50 p-4 rounded-xl border border-slate-200">
+      <div class="space-y-2.5 text-xs text-slate-700 bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-slate-200">
         <h4 class="font-bold text-slate-900 text-xs uppercase tracking-wider mb-2 flex items-center gap-1.5">
           <i class="fa-brands fa-google text-red-500"></i> Step-by-step Gmail Guide:
         </h4>
         <div class="flex items-start gap-2.5">
           <span class="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[11px] flex items-center justify-center flex-shrink-0">1</span>
-          <span>Go to your Google Account security settings at <a href="https://myaccount.google.com/security" target="_blank" rel="noreferrer" class="text-indigo-600 underline font-semibold hover:text-indigo-700">myaccount.google.com/security</a>.</span>
+          <span>Go to your Google Account security settings at <a href="https://myaccount.google.com/security" target="_blank" rel="noreferrer" class="text-indigo-600 underline font-semibold hover:text-indigo-700 break-all">myaccount.google.com/security</a>.</span>
         </div>
         <div class="flex items-start gap-2.5">
           <span class="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[11px] flex items-center justify-center flex-shrink-0">2</span>
@@ -917,7 +1110,7 @@
         </div>
         <div class="flex items-start gap-2.5">
           <span class="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[11px] flex items-center justify-center flex-shrink-0">3</span>
-          <span>In the search bar at the top, search for <strong>"App passwords"</strong> (or visit <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" class="text-indigo-600 underline font-semibold hover:text-indigo-700">myaccount.google.com/apppasswords</a>).</span>
+          <span>In the search bar at the top, search for <strong>"App passwords"</strong> (or visit <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" class="text-indigo-600 underline font-semibold hover:text-indigo-700 break-all">myaccount.google.com/apppasswords</a>).</span>
         </div>
         <div class="flex items-start gap-2.5">
           <span class="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[11px] flex items-center justify-center flex-shrink-0">4</span>
@@ -929,7 +1122,7 @@
         </div>
       </div>
 
-      <div class="mt-5 flex justify-end">
+      <div class="mt-4 sm:mt-5 flex justify-end">
         <button onclick="closeSmtpHelpModal()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow transition">
           Got It, Thanks!
         </button>
@@ -940,26 +1133,26 @@
   <!-- =================================================================== -->
   <!-- API KEY ENCRYPTION & SECURITY HELP MODAL                            -->
   <!-- =================================================================== -->
-  <div id="apiKeyHelpModal" onclick="if(event.target===this)closeApiKeyHelpModal()" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
-    <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 relative transform transition-all">
-      <button onclick="closeApiKeyHelpModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-700 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition">
+  <div id="apiKeyHelpModal" onclick="if(event.target===this)closeApiKeyHelpModal()" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-3 sm:p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-7 shadow-2xl border border-slate-200 relative transform transition-all max-h-[90vh] overflow-y-auto">
+      <button onclick="closeApiKeyHelpModal()" class="absolute top-4 right-4 sm:top-5 sm:right-5 text-slate-400 hover:text-slate-700 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition">
         <i class="fa-solid fa-xmark text-lg"></i>
       </button>
 
       <div class="flex items-center gap-3 mb-4">
-        <div class="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-sm">
-          <i class="fa-solid fa-shield-halved text-lg"></i>
+        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-sm flex-shrink-0">
+          <i class="fa-solid fa-shield-halved text-base sm:text-lg"></i>
         </div>
         <div>
-          <h3 class="text-lg font-black text-slate-900">API Key Privacy & Encryption</h3>
-          <p class="text-xs text-slate-500">Zero-knowledge storage and enterprise-grade encryption</p>
+          <h3 class="text-base sm:text-lg font-black text-slate-900">API Key Privacy & Encryption</h3>
+          <p class="text-[11px] sm:text-xs text-slate-500">Zero-knowledge storage and enterprise-grade encryption</p>
         </div>
       </div>
 
       <!-- Security Details -->
       <div class="space-y-3 text-xs text-slate-700">
-        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 flex items-start gap-3">
-          <i class="fa-solid fa-lock text-emerald-600 text-base mt-0.5"></i>
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 sm:p-3.5 flex items-start gap-2.5 sm:gap-3">
+          <i class="fa-solid fa-lock text-emerald-600 text-base mt-0.5 flex-shrink-0"></i>
           <div>
             <h4 class="font-bold text-emerald-950 text-xs">End-to-End Encrypted at Rest</h4>
             <p class="text-[11px] text-emerald-800 leading-relaxed mt-0.5">
@@ -968,23 +1161,23 @@
           </div>
         </div>
 
-        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-3.5 space-y-2">
           <div class="flex items-start gap-2.5">
-            <i class="fa-solid fa-circle-check text-indigo-600 mt-0.5"></i>
+            <i class="fa-solid fa-circle-check text-indigo-600 mt-0.5 flex-shrink-0"></i>
             <span><strong>Ephemerally Decrypted</strong>: Keys are only decrypted in-memory on demand when running job matching and pitch evaluations for your active session.</span>
           </div>
           <div class="flex items-start gap-2.5">
-            <i class="fa-solid fa-circle-check text-indigo-600 mt-0.5"></i>
+            <i class="fa-solid fa-circle-check text-indigo-600 mt-0.5 flex-shrink-0"></i>
             <span><strong>Never Shared or Logged</strong>: Your keys are never sent to third parties, printed in application logs, or used for any account other than your own.</span>
           </div>
           <div class="flex items-start gap-2.5">
-            <i class="fa-solid fa-circle-check text-indigo-600 mt-0.5"></i>
+            <i class="fa-solid fa-circle-check text-indigo-600 mt-0.5 flex-shrink-0"></i>
             <span><strong>Full Control</strong>: You can change, overwrite, or delete your API key at any time from your settings panel.</span>
           </div>
         </div>
       </div>
 
-      <div class="mt-5 flex justify-end">
+      <div class="mt-4 sm:mt-5 flex justify-end">
         <button onclick="closeApiKeyHelpModal()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow transition">
           I Understand
         </button>
@@ -993,9 +1186,9 @@
   </div>
 
   <!-- Floating Toast Notification -->
-  <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition duration-300 flex items-center space-x-2.5 bg-slate-900 text-white text-sm px-5 py-3.5 rounded-xl shadow-2xl border border-slate-800">
-    <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
-    <span id="toastMsg" class="font-medium">Action completed successfully.</span>
+  <div id="toast" class="fixed bottom-4 right-4 left-4 sm:left-auto sm:bottom-5 sm:right-5 z-50 transform translate-y-20 opacity-0 transition duration-300 flex items-center space-x-2.5 bg-slate-900 text-white text-xs sm:text-sm px-4 sm:px-5 py-3 sm:py-3.5 rounded-xl shadow-2xl border border-slate-800 max-w-sm">
+    <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-base flex-shrink-0"></i>
+    <span id="toastMsg" class="font-medium truncate">Action completed successfully.</span>
   </div>
 
   <script>
@@ -1035,15 +1228,33 @@
 
         if (data.authenticated && data.user) {
           currentUser = data.user;
+          window._currentUser = data.user;
           signInBtn.classList.add('hidden');
           userMenu.classList.remove('hidden');
           name.textContent = currentUser.name || currentUser.email;
           if (currentUser.avatar_url) avatar.src = currentUser.avatar_url;
           activeProfile = currentUser.id;
+
+          // Sync drawer auth state
+          const dSign = document.getElementById('drawerSignInBtn');
+          const dUser = document.getElementById('drawerUserMenu');
+          const dAvatar = document.getElementById('drawerUserAvatar');
+          const dName = document.getElementById('drawerUserName');
+          if (dSign) dSign.classList.add('hidden');
+          if (dUser) dUser.classList.remove('hidden');
+          if (dAvatar && currentUser.avatar_url) dAvatar.src = currentUser.avatar_url;
+          if (dName) dName.textContent = currentUser.name || currentUser.email;
         } else {
           currentUser = null;
+          window._currentUser = null;
           signInBtn.classList.remove('hidden');
           userMenu.classList.add('hidden');
+
+          // Sync drawer auth state
+          const dSign = document.getElementById('drawerSignInBtn');
+          const dUser = document.getElementById('drawerUserMenu');
+          if (dSign) dSign.classList.remove('hidden');
+          if (dUser) dUser.classList.add('hidden');
         }
       } catch (err) {
         console.error('Auth check error:', err);
@@ -1176,6 +1387,7 @@
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
       document.getElementById('tab-' + tabId).classList.remove('hidden');
 
+      // Desktop top tab buttons
       document.querySelectorAll('.tab-btn').forEach(el => {
         el.classList.remove('bg-indigo-600', 'text-white', 'shadow-sm', 'shadow-indigo-500/20');
         el.classList.add('text-slate-400', 'hover:text-white', 'hover:bg-slate-800/80');
@@ -1185,7 +1397,65 @@
         activeBtn.classList.add('bg-indigo-600', 'text-white', 'shadow-sm', 'shadow-indigo-500/20');
         activeBtn.classList.remove('text-slate-400', 'hover:text-white', 'hover:bg-slate-800/80');
       }
+
+      // Mobile bottom tab bar
+      document.querySelectorAll('.btm-tab').forEach(el => {
+        el.classList.remove('active');
+        el.style.color = '';
+        const icon = el.querySelector('.btm-tab-icon');
+        if (icon) {
+          icon.style.backgroundColor = '';
+          icon.style.borderColor = '';
+        }
+        const lbl = el.querySelector('span');
+        if (lbl) lbl.style.color = '';
+      });
+      const activeBtm = document.getElementById('btmTab-' + tabId);
+      if (activeBtm) {
+        activeBtm.classList.add('active');
+      }
     }
+
+    function openDrawer() {
+      // Sync profile dropdown
+      const mainSel = document.getElementById('profileSelect');
+      const drawerSel = document.getElementById('profileSelectDrawer');
+      if (mainSel && drawerSel) {
+        drawerSel.innerHTML = mainSel.innerHTML;
+        drawerSel.value = mainSel.value;
+      }
+      // Sync auth state
+      const isLoggedIn = !document.getElementById('headerSignInBtn') ||
+        document.getElementById('headerSignInBtn').classList.contains('hidden') ||
+        window._currentUser != null;
+      const drawerSign = document.getElementById('drawerSignInBtn');
+      const drawerUserM = document.getElementById('drawerUserMenu');
+      const drawerAvatar = document.getElementById('drawerUserAvatar');
+      const drawerName = document.getElementById('drawerUserName');
+      const hAvatar = document.getElementById('headerUserAvatar');
+      const hName = document.getElementById('headerUserName');
+      if (drawerSign && drawerUserM) {
+        if (window._currentUser) {
+          drawerSign.classList.add('hidden');
+          drawerUserM.classList.remove('hidden');
+          if (drawerAvatar && hAvatar) drawerAvatar.src = hAvatar.src;
+          if (drawerName && hName) drawerName.textContent = hName.textContent;
+        } else {
+          drawerSign.classList.remove('hidden');
+          drawerUserM.classList.add('hidden');
+        }
+      }
+      document.getElementById('mobileDrawer').classList.add('open');
+      document.getElementById('drawerOverlay').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeDrawer() {
+      document.getElementById('mobileDrawer').classList.remove('open');
+      document.getElementById('drawerOverlay').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
 
     async function loadAiModels() {
       try {
@@ -1798,6 +2068,16 @@
         if (appEl) appEl.innerText = s.applied || 0;
         const skipEl = document.getElementById('statSkipped');
         if (skipEl) skipEl.innerText = s.skipped || 0;
+
+        // Sync mobile stats bar
+        const qM = document.getElementById('statQualifiedM');
+        if (qM) qM.innerText = s.qualified || 0;
+        const pM = document.getElementById('statPendingM');
+        if (pM) pM.innerText = s.pending || 0;
+        const aM = document.getElementById('statAppliedM');
+        if (aM) aM.innerText = s.applied || 0;
+        const sM = document.getElementById('statSkippedM');
+        if (sM) sM.innerText = s.skipped || 0;
       } catch (err) {
         console.error(err);
       }
@@ -1878,36 +2158,36 @@
           }
 
           return `
-            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:border-indigo-300 transition">
+            <div class="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm hover:border-indigo-300 transition">
               <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                <div>
-                  <div class="flex flex-wrap items-center gap-2">
-                    <h4 class="font-bold text-slate-900 text-base">${j.company}</h4>
-                    <span class="text-xs px-2.5 py-0.5 rounded-full border ${badgeColor} font-bold">${score}% Match</span>
-                    <span class="text-xs text-slate-400">via ${formatSourceLabel(j.source)}</span>
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                    <h4 class="font-bold text-slate-900 text-sm sm:text-base">${j.company}</h4>
+                    <span class="text-xs px-2 sm:px-2.5 py-0.5 rounded-full border ${badgeColor} font-bold">${score}% Match</span>
+                    <span class="text-[11px] sm:text-xs text-slate-400">via ${formatSourceLabel(j.source)}</span>
                   </div>
-                  <div class="text-sm font-bold text-indigo-600 mt-1">${j.title}</div>
-                  <div class="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-2">
+                  <div class="text-sm sm:text-base font-bold text-indigo-600 mt-1 break-words">${j.title}</div>
+                  <div class="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-slate-500 mt-2">
                     <span><i class="fa-solid fa-location-dot mr-1"></i>${j.location_raw || 'Remote'}</span>
                     <span><i class="fa-solid fa-clock mr-1"></i>${j.employment_type || 'Unspecified'}</span>
                     <span><i class="fa-solid fa-money-bill-wave mr-1"></i>${j.salary_min ? (j.currency || '$') + j.salary_min.toLocaleString() : 'Undisclosed'}</span>
-                    ${j.recruiter_email ? `<span class="text-indigo-600 font-semibold"><i class="fa-solid fa-envelope mr-1"></i>${j.recruiter_email}</span>` : ''}
+                    ${j.recruiter_email ? `<span class="text-indigo-600 font-semibold break-all"><i class="fa-solid fa-envelope mr-1"></i>${j.recruiter_email}</span>` : ''}
                   </div>
                 </div>
 
                 <!-- Action Buttons: Apply & Skip -->
-                <div class="flex items-center flex-wrap gap-2 pt-2 sm:pt-0 flex-shrink-0">
+                <div class="flex items-center flex-wrap gap-2 pt-2 sm:pt-0 flex-shrink-0 w-full sm:w-auto">
                   ${j.recruiter_email ? `
-                    <button type="button" onclick="handleJobAction('${j.id}', 'send_email')" class="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm transition flex items-center space-x-1.5 cursor-pointer">
+                    <button type="button" onclick="handleJobAction('${j.id}', 'send_email')" class="w-full sm:w-auto flex-1 sm:flex-initial justify-center bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm transition flex items-center space-x-1.5 cursor-pointer">
                       <i class="fa-solid fa-paper-plane"></i>
                       <span>Send Email</span>
                     </button>
                   ` : ''}
-                  <a href="${j.apply_url}" target="_blank" rel="noopener noreferrer" onclick="handleJobAction('${j.id}', 'mark_applied')" class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm transition flex items-center space-x-1.5 cursor-pointer">
+                  <a href="${j.apply_url}" target="_blank" rel="noopener noreferrer" onclick="handleJobAction('${j.id}', 'mark_applied')" class="w-full sm:w-auto flex-1 sm:flex-initial justify-center bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm transition flex items-center space-x-1.5 cursor-pointer">
                     <i class="fa-solid fa-arrow-up-right-from-square"></i>
                     <span>Apply URL</span>
                   </a>
-                  <button type="button" onclick="handleJobAction('${j.id}', 'skip')" class="bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-200 hover:border-rose-300 text-xs font-semibold px-3 py-2 rounded-xl transition flex items-center space-x-1.5 cursor-pointer" title="Skip this job">
+                  <button type="button" onclick="handleJobAction('${j.id}', 'skip')" class="w-full sm:w-auto flex-1 sm:flex-initial justify-center bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-200 hover:border-rose-300 text-xs font-semibold px-3 py-2 rounded-xl transition flex items-center space-x-1.5 cursor-pointer" title="Skip this job">
                     <i class="fa-solid fa-forward text-slate-400 group-hover:text-rose-500"></i>
                     <span>Skip</span>
                   </button>
@@ -1917,12 +2197,12 @@
               ${skillsHtml ? `<div class="mt-3 flex flex-wrap gap-1.5">${skillsHtml}</div>` : ''}
 
               ${j.tailored_pitch ? `
-                <div class="mt-4 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs text-slate-700 leading-relaxed">
+                <div class="mt-4 bg-slate-50 p-3 sm:p-4 rounded-xl border border-slate-200 text-xs text-slate-700 leading-relaxed break-words">
                   <div class="font-bold text-slate-900 mb-1 flex items-center space-x-1.5">
                     <i class="fa-solid fa-wand-magic-sparkles text-indigo-500"></i>
                     <span>Tailored Outreach Pitch Preview:</span>
                   </div>
-                  <p class="italic font-serif text-slate-800 text-sm mt-1">${j.tailored_pitch}</p>
+                  <p class="italic font-serif text-slate-800 text-xs sm:text-sm mt-1 leading-relaxed">${j.tailored_pitch}</p>
                 </div>
               ` : ''}
             </div>
