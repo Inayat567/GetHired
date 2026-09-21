@@ -1,15 +1,15 @@
 # fly.toml app configuration file for GetHired
 # Refer to https://fly.io/docs/reference/configuration/ for information
 
-app = "gethired-app"
-primary_region = "iad"
+app = "gethired"
+primary_region = "ams"
 
 [build]
 
 [env]
   NODE_ENV = "production"
   PORT = "3000"
-  SQLITE_DB_PATH = "/data/db/jobs.db"
+  SQLITE_DB_PATH = "/data/jobs.db"
   PROFILES_DIR = "/data/profiles"
 
 [http_service]

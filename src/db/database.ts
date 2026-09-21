@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
 import { Job, JobStatus } from '../types';
@@ -7,8 +9,14 @@ let dbInstance: Database | null = null;
 export async function getDb(dbPath: string = './jobs.db'): Promise<Database> {
   if (dbInstance) return dbInstance;
 
+  const resolvedDbPath = path.resolve(dbPath);
+  const dbDir = path.dirname(resolvedDbPath);
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
+
   dbInstance = await open({
-    filename: dbPath,
+    filename: resolvedDbPath,
     driver: sqlite3.Database,
   });
 

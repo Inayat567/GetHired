@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+profiles
+jobs.db
+jobs.db-journal
+jobs.db-wal
+jobs.db-shm
+.env
+.env.local
+linkedin-session
+dist
+npm-debug.log
+yarn-error.log
