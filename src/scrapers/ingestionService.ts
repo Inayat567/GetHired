@@ -21,7 +21,7 @@ export interface IngestionReport {
   qualifiedCount: number;
 }
 
-export async function runIngestion(db: Database, config: AppConfig): Promise<IngestionReport> {
+export async function runIngestion(db: Database, config: AppConfig, days?: number): Promise<IngestionReport> {
   console.log('📡 Starting multi-channel job ingestion...');
   const rawListings: RawJobListing[] = [];
 
@@ -37,29 +37,45 @@ export async function runIngestion(db: Database, config: AppConfig): Promise<Ing
     fetchJobicyJobs(primaryKeyword.toLowerCase()),
     fetchWeWorkRemotelyJobs(),
   ]);
+  console.log(`     [Aggregators] RemoteOK: ${remoteOk.length} | Jobicy: ${jobicy.length} | WeWorkRemotely: ${wwr.length}`);
   rawListings.push(...remoteOk, ...jobicy, ...wwr);
 
   // 2. Fetch Public ATS Boards (Greenhouse & Lever) filtered by user keywords
   console.log(`  -> Fetching public ATS endpoints filtered by [${keywordsList.join(', ')}]...`);
   const atsJobs = await fetchAllATSJobs(undefined, undefined, keywordsList);
+  console.log(`     [ATS Boards] Extracted ${atsJobs.length} matching jobs.`);
   rawListings.push(...atsJobs);
 
-  // 3. Fetch LinkedIn Guest Jobs across user target countries
-  const targetCountries = config.preferences.location.target_countries.length > 0
-    ? config.preferences.location.target_countries.slice(0, 3)
-    : ['Worldwide'];
-  
-  for (const country of targetCountries) {
-    console.log(`  -> Querying public LinkedIn remote search in ${country} for "${primaryKeyword}"...`);
-    const linkedinGuest = await fetchLinkedInGuestJobs(primaryKeyword, country);
+  // 3. Fetch LinkedIn Guest Jobs across Worldwide + user target countries
+  const locationsToSearch: string[] = [];
+  if (config.preferences.location.allow_worldwide_remote) {
+    locationsToSearch.push('Worldwide');
+  }
+  for (const c of config.preferences.location.target_countries) {
+    if (!locationsToSearch.includes(c)) {
+      locationsToSearch.push(c);
+    }
+  }
+  if (locationsToSearch.length === 0) {
+    locationsToSearch.push('Worldwide');
+  }
+
+  const activeLocations = locationsToSearch.slice(0, 4);
+  let totalLinkedInGuest = 0;
+  for (const country of activeLocations) {
+    console.log(`  -> Querying public LinkedIn remote search in ${country} for "${primaryKeyword}" (interval: ${days || 7} days)...`);
+    const linkedinGuest = await fetchLinkedInGuestJobs(primaryKeyword, country, days || 7);
+    totalLinkedInGuest += linkedinGuest.length;
     rawListings.push(...linkedinGuest);
   }
+  console.log(`     [LinkedIn Guest] Total scraped: ${totalLinkedInGuest} jobs.`);
 
   // 4. Fetch LinkedIn Hiring Posts (if session is initialized)
   const linkedinPosts = await scrapeLinkedInHiringPosts('./linkedin-session', primaryKeyword);
+  console.log(`     [LinkedIn Posts] Total scraped: ${linkedinPosts.length} posts.`);
   rawListings.push(...linkedinPosts);
 
-  console.log(`📥 Total raw listings scraped: ${rawListings.length}`);
+  console.log(`📥 Total raw listings scraped across all sources: ${rawListings.length}`);
 
   let newCount = 0;
   let filteredOutCount = 0;
@@ -86,6 +102,9 @@ export async function runIngestion(db: Database, config: AppConfig): Promise<Ing
 
     if (!filterResult.passes) {
       filteredOutCount++;
+      if (raw.source.includes('linkedin')) {
+        console.log(`  🚫 [Pre-Filter Disqualified] ${raw.source}: "${raw.title}" @ ${raw.company} (${raw.location_raw}) -> ${filterResult.reason}`);
+      }
       // Store as skipped in DB with skipped_by = 'auto' so it is never triaged or shown in user's skipped tab
       await insertJob(db, {
         id,
@@ -104,6 +123,9 @@ export async function runIngestion(db: Database, config: AppConfig): Promise<Ing
 
     // Listing passed deterministic checks!
     qualifiedCount++;
+    if (raw.source.includes('linkedin')) {
+      console.log(`  ✅ [Pre-Filter Qualified] ${raw.source}: "${raw.title}" @ ${raw.company} (${raw.location_raw}) -> Ready for LLM Evaluation!`);
+    }
     await insertJob(db, {
       id,
       source: raw.source,

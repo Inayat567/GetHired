@@ -1374,6 +1374,24 @@
       await loadJobs(status);
     }
 
+    function formatSourceLabel(source) {
+      if (!source) return '';
+      const s = source.toLowerCase();
+      if (s.includes('linkedin')) return 'LinkedIn';
+      if (s.includes('weworkremotely') || s === 'wwr') return 'WeWorkRemotely';
+      if (s.includes('remoteok')) return 'RemoteOK';
+      if (s.includes('jobicy')) return 'Jobicy';
+      if (s.startsWith('greenhouse:')) {
+        const company = source.split(':')[1] || '';
+        return `Greenhouse (${company.charAt(0).toUpperCase() + company.slice(1)})`;
+      }
+      if (s.startsWith('lever:')) {
+        const company = source.split(':')[1] || '';
+        return `Lever (${company.charAt(0).toUpperCase() + company.slice(1)})`;
+      }
+      return source;
+    }
+
     async function loadJobs(status) {
       const container = document.getElementById('jobsList');
       container.innerHTML = `
@@ -1421,7 +1439,7 @@
                   <div class="flex flex-wrap items-center gap-2">
                     <h4 class="font-bold text-slate-900 text-base">${j.company}</h4>
                     <span class="text-xs px-2.5 py-0.5 rounded-full border ${badgeColor} font-bold">${score}% Match</span>
-                    <span class="text-xs text-slate-400">via ${j.source}</span>
+                    <span class="text-xs text-slate-400">via ${formatSourceLabel(j.source)}</span>
                   </div>
                   <div class="text-sm font-bold text-indigo-600 mt-1">${j.title}</div>
                   <div class="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-2">

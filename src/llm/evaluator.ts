@@ -177,11 +177,7 @@ Return strictly valid JSON with this exact schema:
     return JSON.parse(cleaned) as LLMEvaluationResult;
   } catch (err: any) {
     console.error(`[LLM Evaluator - ${aiSettings.provider}] Error evaluating job at ${job.company}:`, err.message);
-    return {
-      match_score: 50,
-      should_apply: false,
-      disqualification_reason: `AI (${aiSettings.provider}) evaluation error: ${err.message}`,
-    };
+    throw new Error(`AI (${aiSettings.provider}) evaluation error: ${err.message}`);
   }
 }
 
@@ -208,26 +204,41 @@ export async function evaluatePendingJobs(
 
   for (const job of pendingJobs) {
     console.log(`  Evaluating: ${job.title} @ ${job.company}...`);
-    const evalResult = await evaluateJobWithLLM(job, config, userSettings);
+    try {
+      const evalResult = await evaluateJobWithLLM(job, config, userSettings);
 
-    const isQualified = evalResult.should_apply && evalResult.match_score >= config.preferences.match_threshold;
-    const newStatus = isQualified ? 'qualified' : 'skipped';
+      const isQualified = evalResult.should_apply && evalResult.match_score >= config.preferences.match_threshold;
+      const newStatus = isQualified ? 'qualified' : 'skipped';
 
-    await updateJobEvaluation(db, job.id, {
-      match_score: evalResult.match_score,
-      should_apply: evalResult.should_apply,
-      disqualification_reason: evalResult.disqualification_reason,
-      recruiter_email: evalResult.contact_email,
-      recruiter_name: evalResult.contact_name,
-      key_matching_skills: evalResult.key_matching_skills,
-      tailored_pitch: evalResult.cold_email_body,
-      email_subject: evalResult.cold_email_subject,
-      status: newStatus,
-      skipped_by: newStatus === 'skipped' ? 'auto' : undefined,
-    });
+      await updateJobEvaluation(db, job.id, {
+        match_score: evalResult.match_score,
+        should_apply: evalResult.should_apply,
+        disqualification_reason: evalResult.disqualification_reason,
+        recruiter_email: evalResult.contact_email,
+        recruiter_name: evalResult.contact_name,
+        key_matching_skills: evalResult.key_matching_skills,
+        tailored_pitch: evalResult.cold_email_body,
+        email_subject: evalResult.cold_email_subject,
+        status: newStatus,
+        skipped_by: newStatus === 'skipped' ? 'auto' : undefined,
+      });
 
-    evaluatedCount++;
-    console.log(`   -> Match Score: ${evalResult.match_score}% | Status: ${newStatus}`);
+      evaluatedCount++;
+      console.log(`   -> Match Score: ${evalResult.match_score}% | Status: ${newStatus}`);
+    } catch (err: any) {
+      console.error(`❌ [LLM Evaluator] Failed to evaluate "${job.title}" @ ${job.company}: ${err.message}`);
+      const msg = err.message || '';
+      if (
+        msg.includes('Connection error') ||
+        msg.includes('ENOTFOUND') ||
+        msg.includes('API key') ||
+        msg.includes('401') ||
+        msg.includes('rate limit')
+      ) {
+        console.warn(`⚠️ Stopping batch evaluation early due to API/Network failure: ${msg}`);
+        break;
+      }
+    }
   }
 
   return evaluatedCount;

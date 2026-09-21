@@ -152,13 +152,57 @@ export default function HomePage() {
             GetHired autonomously scrapes direct company ATS endpoints (Greenhouse, Lever), RSS channels, and LinkedIn hiring posts. It deterministically rejects location-restricted and stale roles, scores deep semantic stack fit with LLMs, and crafts personalized cold outreach directly to decision-makers.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2">
+          {/* Job Search & Discovery Controls with Days Interval Dropdown */}
+          <div className="max-w-2xl mx-auto p-3.5 sm:p-4 rounded-2xl bg-slate-900/90 border border-slate-800 backdrop-blur-md shadow-2xl flex flex-col sm:flex-row items-center gap-3">
+            <div className="flex-1 w-full flex items-center bg-slate-950/80 rounded-xl border border-slate-800 px-3.5 py-2.5 space-x-2.5">
+              <i className="fa-solid fa-briefcase text-slate-400 text-sm"></i>
+              <span className="text-xs text-slate-300 font-medium">Search interval:</span>
+              <select
+                id="home_days_select"
+                defaultValue="7"
+                onChange={(e) => {
+                  if (typeof window !== 'undefined') {
+                    localStorage.setItem('gethired_search_days', e.target.value);
+                  }
+                }}
+                className="flex-1 bg-transparent text-xs sm:text-sm font-semibold text-white focus:outline-none cursor-pointer"
+              >
+                <option value="1" className="bg-slate-900 text-slate-100">Last 1 day</option>
+                <option value="3" className="bg-slate-900 text-slate-100">Last 3 days</option>
+                <option value="7" className="bg-slate-900 text-slate-100">Last 7 days (Default)</option>
+                <option value="10" className="bg-slate-900 text-slate-100">Last 10 days</option>
+                <option value="15" className="bg-slate-900 text-slate-100">Last 15 days</option>
+                <option value="30" className="bg-slate-900 text-slate-100">Last 30 days (Max)</option>
+              </select>
+            </div>
+
+            <button
+              onClick={() => {
+                const selectEl = document.getElementById('home_days_select') as HTMLSelectElement | null;
+                const daysVal = selectEl?.value || '7';
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('gethired_search_days', daysVal);
+                }
+                if (user) {
+                  window.location.href = `/dashboard?days=${daysVal}`;
+                } else {
+                  setIsLoginModalOpen(true);
+                }
+              }}
+              className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 active:scale-95 text-white font-bold text-xs sm:text-sm px-6 py-3.5 rounded-xl shadow-lg shadow-indigo-600/30 transition transform cursor-pointer flex-shrink-0"
+            >
+              <i className="fa-solid fa-magnifying-glass"></i>
+              <span>Search Remote Jobs</span>
+            </button>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-1">
             <button
               onClick={handleStart}
-              className="w-full sm:w-auto flex items-center justify-center space-x-2.5 bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-base px-8 py-4 rounded-2xl shadow-xl shadow-indigo-600/30 transition transform active:scale-95 cursor-pointer"
+              className="w-full sm:w-auto flex items-center justify-center space-x-2.5 bg-slate-900 hover:bg-slate-800 text-slate-200 font-bold text-xs sm:text-sm px-7 py-3 rounded-xl border border-slate-800 hover:border-slate-700 transition cursor-pointer"
             >
-              <i className="fa-solid fa-sparkles"></i>
-              <span>{user ? 'Open Your Dashboard' : 'Start Job Hunting — Free'}</span>
+              <i className="fa-solid fa-sparkles text-indigo-400"></i>
+              <span>{user ? 'Open Dashboard Workspace' : 'Sign In to Workspace'}</span>
               <i className="fa-solid fa-arrow-right text-xs ml-1"></i>
             </button>
 
@@ -166,9 +210,9 @@ export default function HomePage() {
               href="https://github.com/Inayat567/GetHired"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-slate-900 hover:bg-slate-800 text-slate-200 font-bold text-base px-7 py-4 rounded-2xl border border-slate-800 hover:border-slate-700 transition"
+              className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-slate-950 hover:bg-slate-900 text-slate-300 font-bold text-xs sm:text-sm px-6 py-3 rounded-xl border border-slate-800 transition"
             >
-              <i className="fa-brands fa-github text-lg"></i>
+              <i className="fa-brands fa-github text-base"></i>
               <span>View Source on GitHub</span>
             </a>
           </div>

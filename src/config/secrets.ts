@@ -1,13 +1,19 @@
 import crypto from 'crypto';
+import dotenv from 'dotenv';
 
-const MASTER_SECRET = process.env.JWT_SECRET || 'gethired_production_jwt_secret_key_928374';
+dotenv.config();
+
+function getMasterSecret(): string {
+  return process.env.JWT_SECRET || 'gethired_production_jwt_secret_key_928374';
+}
+
 const ENC_PREFIX = 'enc:v1:';
 
 /**
  * Derives a 32-byte (256-bit) encryption key using HKDF based on master secret and profile/context
  */
 function deriveKey(context: string): Buffer {
-  return Buffer.from(crypto.hkdfSync('sha256', MASTER_SECRET, context, 'gethired_secret_encryption', 32));
+  return Buffer.from(crypto.hkdfSync('sha256', getMasterSecret(), context, 'gethired_secret_encryption', 32));
 }
 
 /**

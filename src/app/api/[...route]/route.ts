@@ -187,11 +187,13 @@ export async function GET(req: Request, context: { params: Promise<{ route: stri
       return NextResponse.json(bundle.settings);
     }
 
-    // 10. Get Jobs (Strictly linked to active user persona profile)
+    // 10. Get Jobs (Strictly linked to active user persona profile and optional days interval)
     if (pathname === '/api/jobs') {
       const status = searchParams.get('status') || 'qualified';
       const profileId = searchParams.get('id') || effectiveProfileId;
-      const jobs = await getJobsForProfile(db, profileId, status);
+      const rawDays = searchParams.get('days');
+      const days = rawDays ? parseInt(rawDays, 10) : undefined;
+      const jobs = await getJobsForProfile(db, profileId, status, days);
       return NextResponse.json({ jobs });
     }
 
@@ -202,10 +204,12 @@ export async function GET(req: Request, context: { params: Promise<{ route: stri
       return NextResponse.json(validation);
     }
 
-    // 12. Stats (Strictly linked to active user persona profile)
+    // 12. Stats (Strictly linked to active user persona profile and optional days interval)
     if (pathname === '/api/stats') {
       const profileId = searchParams.get('id') || effectiveProfileId;
-      const stats = await getStats(db, profileId);
+      const rawDays = searchParams.get('days');
+      const days = rawDays ? parseInt(rawDays, 10) : undefined;
+      const stats = await getStats(db, profileId, days);
       return NextResponse.json(stats);
     }
 
@@ -398,11 +402,13 @@ export async function POST(req: Request, context: { params: Promise<{ route: str
         candidateProfile: bundle.candidateProfile,
       };
 
-      const report = await runIngestion(db, profileConfig);
+      const rawDays = body.days || searchParams.get('days');
+      const days = rawDays ? parseInt(rawDays, 10) : undefined;
+      const report = await runIngestion(db, profileConfig, days);
       const evalLimit = body.evalLimit || 10;
       const evaluated = await evaluatePendingJobs(db, profileConfig, evalLimit, bundle.settings);
-      const stats = await getStats(db);
-      const qualifiedJobs = await getQualifiedJobsForTriage(db);
+      const stats = await getStats(db, profileId, days);
+      const qualifiedJobs = await getQualifiedJobsForTriage(db, profileId, days);
 
       return NextResponse.json({
         success: true,

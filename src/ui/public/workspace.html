@@ -291,10 +291,26 @@
           <p class="text-xs text-slate-300 mt-0.5">Scrapes ATS endpoints, remote boards & LinkedIn, applies your regional preferences, and drafts cold pitch emails.</p>
         </div>
 
-        <button onclick="triggerDiscovery()" id="searchDiscoverBtn" class="w-full md:w-auto flex items-center justify-center space-x-2 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold px-6 py-3.5 rounded-xl shadow-lg shadow-indigo-600/30 transition transform">
-          <i class="fa-solid fa-magnifying-glass"></i>
-          <span>Search & Evaluate Jobs Now</span>
-        </button>
+        <div class="flex flex-col sm:flex-row items-center gap-2.5 w-full md:w-auto">
+          <!-- Days Interval Selector -->
+          <div class="flex items-center bg-slate-950/90 border border-slate-700/80 rounded-xl px-3 py-2 space-x-2 w-full sm:w-auto">
+            <i class="fa-solid fa-clock-rotate-left text-xs text-slate-400"></i>
+            <span class="text-xs text-slate-300 font-medium">Interval:</span>
+            <select id="search_days_filter" onchange="onSearchDaysChanged(this.value)" class="bg-transparent text-xs font-bold text-white focus:outline-none cursor-pointer">
+              <option value="1" class="bg-slate-900 text-white">Last 1 day</option>
+              <option value="3" class="bg-slate-900 text-white">Last 3 days</option>
+              <option value="7" selected class="bg-slate-900 text-white">Last 7 days (Default)</option>
+              <option value="10" class="bg-slate-900 text-white">Last 10 days</option>
+              <option value="15" class="bg-slate-900 text-white">Last 15 days</option>
+              <option value="30" class="bg-slate-900 text-white">Last 30 days (Max)</option>
+            </select>
+          </div>
+
+          <button onclick="triggerDiscovery()" id="searchDiscoverBtn" class="w-full sm:w-auto flex items-center justify-center space-x-2 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold px-6 py-3.5 rounded-xl shadow-lg shadow-indigo-600/30 transition transform flex-shrink-0 cursor-pointer">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <span>Search & Evaluate Jobs Now</span>
+          </button>
+        </div>
       </div>
 
       <!-- Loading State Overlay / Card -->
@@ -892,6 +908,16 @@
     let currentUser = null;
 
     async function init() {
+      // Sync days interval from URL or localStorage (default: 7)
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlDays = urlParams.get('days');
+      const savedDays = urlDays || (typeof window !== 'undefined' ? localStorage.getItem('gethired_search_days') : null) || '7';
+      const daysSelector = document.getElementById('search_days_filter');
+      if (daysSelector) {
+        daysSelector.value = savedDays;
+      }
+      selectedSearchDays = parseInt(savedDays, 10) || 7;
+
       setupDropZone();
       await checkAuth();
       await loadAiModels();
@@ -1625,9 +1651,30 @@
       reader.readAsDataURL(file);
     }
 
+    let selectedSearchDays = 7;
+
+    function getSelectedDays() {
+      const selectEl = document.getElementById('search_days_filter');
+      if (selectEl && selectEl.value) {
+        selectedSearchDays = parseInt(selectEl.value, 10) || 7;
+      }
+      return selectedSearchDays;
+    }
+
+    async function onSearchDaysChanged(val) {
+      selectedSearchDays = parseInt(val, 10) || 7;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('gethired_search_days', selectedSearchDays.toString());
+      }
+      showToast(`Showing jobs from the last ${selectedSearchDays} days`);
+      await loadStats();
+      await loadJobs(currentStatusFilter);
+    }
+
     async function loadStats() {
       try {
-        const res = await fetch(`/api/stats?id=${encodeURIComponent(activeProfile)}`);
+        const days = getSelectedDays();
+        const res = await fetch(`/api/stats?id=${encodeURIComponent(activeProfile)}&days=${days}`);
         const s = await res.json();
         const totalEl = document.getElementById('statTotal');
         if (totalEl) totalEl.innerText = s.total || 0;
@@ -1656,6 +1703,24 @@
       await loadJobs(status);
     }
 
+    function formatSourceLabel(source) {
+      if (!source) return '';
+      const s = source.toLowerCase();
+      if (s.includes('linkedin')) return 'LinkedIn';
+      if (s.includes('weworkremotely') || s === 'wwr') return 'WeWorkRemotely';
+      if (s.includes('remoteok')) return 'RemoteOK';
+      if (s.includes('jobicy')) return 'Jobicy';
+      if (s.startsWith('greenhouse:')) {
+        const company = source.split(':')[1] || '';
+        return `Greenhouse (${company.charAt(0).toUpperCase() + company.slice(1)})`;
+      }
+      if (s.startsWith('lever:')) {
+        const company = source.split(':')[1] || '';
+        return `Lever (${company.charAt(0).toUpperCase() + company.slice(1)})`;
+      }
+      return source;
+    }
+
     async function loadJobs(status) {
       const container = document.getElementById('jobsList');
       container.innerHTML = `
@@ -1666,7 +1731,8 @@
       `;
 
       try {
-        const res = await fetch(`/api/jobs?status=${encodeURIComponent(status)}&id=${encodeURIComponent(activeProfile)}`);
+        const days = getSelectedDays();
+        const res = await fetch(`/api/jobs?status=${encodeURIComponent(status)}&id=${encodeURIComponent(activeProfile)}&days=${days}`);
         const data = await res.json();
         const jobs = data.jobs || [];
 
@@ -1675,11 +1741,11 @@
         if (jobs.length === 0) {
           const emptySubtitle = status === 'skipped'
             ? 'Jobs you manually skip during triage will appear here for your records.'
-            : 'Click "Search & Evaluate Jobs Now" to run discovery and qualify fresh opportunities.';
+            : `No matching ${status} jobs found in the last ${days} days. Click "Search & Evaluate Jobs Now" or widen your interval.`;
           container.innerHTML = `
             <div class="text-center py-16 bg-white rounded-2xl border border-slate-200 shadow-sm">
               <i class="fa-solid fa-briefcase text-4xl text-slate-300 mb-3"></i>
-              <p class="text-slate-700 font-bold text-base">No ${status} jobs right now</p>
+              <p class="text-slate-700 font-bold text-base">No ${status} jobs in the last ${days} days</p>
               <p class="text-slate-400 text-xs mt-1 max-w-sm mx-auto">${emptySubtitle}</p>
             </div>
           `;
@@ -1692,8 +1758,11 @@
           
           let skillsHtml = '';
           if (j.key_matching_skills) {
-            const skills = typeof j.key_matching_skills === 'string' ? JSON.parse(j.key_matching_skills) : j.key_matching_skills;
-            skillsHtml = skills.map(s => `<span class="bg-indigo-50 text-indigo-700 text-xs px-2.5 py-0.5 rounded-md font-semibold border border-indigo-100">${s}</span>`).join(' ');
+            skillsHtml = (Array.isArray(j.key_matching_skills) ? j.key_matching_skills : []).map(skill => `
+              <span class="inline-flex items-center text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-md">
+                ${skill}
+              </span>
+            `).join('');
           }
 
           return `
@@ -1703,7 +1772,7 @@
                   <div class="flex flex-wrap items-center gap-2">
                     <h4 class="font-bold text-slate-900 text-base">${j.company}</h4>
                     <span class="text-xs px-2.5 py-0.5 rounded-full border ${badgeColor} font-bold">${score}% Match</span>
-                    <span class="text-xs text-slate-400">via ${j.source}</span>
+                    <span class="text-xs text-slate-400">via ${formatSourceLabel(j.source)}</span>
                   </div>
                   <div class="text-sm font-bold text-indigo-600 mt-1">${j.title}</div>
                   <div class="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-2">
@@ -1784,11 +1853,13 @@
       btn.classList.add('opacity-70', 'cursor-not-allowed');
       overlay.classList.remove('hidden');
 
+      const days = getSelectedDays();
+
       try {
         const res = await fetch('/api/discover', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ profileId: activeProfile, evalLimit: 10 }),
+          body: JSON.stringify({ profileId: activeProfile, evalLimit: 10, days }),
         });
         const data = await res.json();
         if (data.success) {

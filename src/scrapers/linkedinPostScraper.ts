@@ -55,10 +55,21 @@ export async function scrapeLinkedInHiringPosts(
       `"${keywords}" AND ("hiring" OR "send cv" OR "email" OR "contract")`
     )}&sortBy="date_posted"`;
 
+    console.log(`[LinkedIn Posts] Navigating to: ${searchUrl}`);
     await page.goto(searchUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
     await page.waitForTimeout(3500);
 
+    const currentUrl = page.url();
+    const pageTitle = await page.title();
+    console.log(`[LinkedIn Posts] Current Page: "${pageTitle}" (${currentUrl})`);
+
+    if (currentUrl.includes('/login') || currentUrl.includes('/authwall') || currentUrl.includes('/checkpoint')) {
+      console.warn(`[LinkedIn Posts] ⚠️ LinkedIn session expired or requires re-authentication (Redirected to: ${currentUrl}). Run "npm run linkedin-login" to renew session.`);
+      return [];
+    }
+
     // Scroll 2-3 times with randomized delay to load posts
+    console.log('[LinkedIn Posts] Scrolling feed to trigger lazy-loaded posts...');
     for (let i = 0; i < 3; i++) {
       await page.mouse.wheel(0, 800 + Math.random() * 400);
       await page.waitForTimeout(2000 + Math.random() * 1500);
@@ -71,7 +82,7 @@ export async function scrapeLinkedInHiringPosts(
       });
 
       const items: Array<{ author: string; text: string; postUrl: string }> = [];
-      const cards = document.querySelectorAll('.feed-shared-update-v2, div[data-urn*="urn:li:activity"], .feed-shared-update-v2__content');
+      const cards = document.querySelectorAll('.feed-shared-update-v2, div[data-urn*="urn:li:activity"], .feed-shared-update-v2__content, .search-results-container article');
 
       cards.forEach((card) => {
         const authorEl = card.querySelector('.update-components-actor__name, .feed-shared-actor__name, span.update-components-actor__title');
@@ -89,6 +100,8 @@ export async function scrapeLinkedInHiringPosts(
       return items;
     });
 
+    console.log(`[LinkedIn Posts] Evaluated feed DOM: found ${posts.length} post snippets.`);
+
     for (const post of posts) {
       const emails = post.text.match(EMAIL_REGEX) || [];
       const recruiterEmail = emails.length > 0 ? emails[0] : undefined;
@@ -99,11 +112,12 @@ export async function scrapeLinkedInHiringPosts(
         title: `${keywords} Opportunity (via LinkedIn Post)`,
         apply_url: post.postUrl || 'https://www.linkedin.com/feed/',
         location_raw: 'Remote',
-        description_text: post.text,
+        description_text: `${post.text}\n\nKeywords: ${keywords} (Remote)`,
         recruiter_name: post.author,
         recruiter_email: recruiterEmail,
       });
     }
+    console.log(`[LinkedIn Posts] ✅ Extracted ${results.length} valid hiring posts for "${keywords}"`);
   } catch (err: any) {
     console.error('[LinkedIn Posts] Error during post scrape:', err.message);
   } finally {

@@ -243,6 +243,22 @@ export function loadProfileBundleForResponse(profileId: string = 'default'): Use
   };
 }
 
+export function sanitizeApiKey(raw: string): string {
+  if (!raw || typeof raw !== 'string') return '';
+  let str = raw.trim();
+  // Strip surrounding quotes if present
+  if ((str.startsWith('"') && str.endsWith('"')) || (str.startsWith("'") && str.endsWith("'"))) {
+    str = str.slice(1, -1).trim();
+  }
+  // If user pasted a JSON snippet or console output containing an API key token, extract it
+  const match = str.match(/(sk-(?:proj-)?[A-Za-z0-9_-]{20,}|sk-ant-[A-Za-z0-9_-]{20,}|AIza[A-Za-z0-9_-]{20,}|xai-[A-Za-z0-9_-]{20,})/);
+  if (match) {
+    return match[1];
+  }
+  // Otherwise remove whitespace/linebreaks
+  return str.replace(/\s+/g, '');
+}
+
 export function saveUserSettings(profileId: string, incomingSettings: any) {
   const paths = getProfilePaths(profileId);
 
@@ -281,8 +297,13 @@ export function saveUserSettings(profileId: string, incomingSettings: any) {
   if (resolvedApiKey === '__UNCHANGED__' || (!resolvedApiKey && existingSettings.api_key)) {
     resolvedApiKey = existingSettings.api_key; // already encrypted or plain
   } else if (resolvedApiKey && resolvedApiKey.trim() !== '') {
-    // New key entered: encrypt with AES-256-GCM
-    resolvedApiKey = encryptSecret(resolvedApiKey.trim(), `${profileId}_api_key`);
+    // New key entered: sanitize and encrypt with AES-256-GCM
+    const cleanKey = sanitizeApiKey(resolvedApiKey);
+    if (cleanKey) {
+      resolvedApiKey = encryptSecret(cleanKey, `${profileId}_api_key`);
+    } else {
+      resolvedApiKey = '';
+    }
   } else {
     resolvedApiKey = '';
   }

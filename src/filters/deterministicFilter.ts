@@ -148,8 +148,12 @@ export function passesDeterministicFilter(
   });
 
   if (!isGenericRemote && !matchesTargetCountry && !matchesAlias) {
-    // If it's locked to a specific country not in target countries
-    return { passes: false, reason: `Location "${job.location_raw}" does not match target countries.` };
+    // If worldwide remote is allowed and the job is remote anywhere
+    if (isWorldwideAllowed && (locRaw.includes('remote') || combinedText.includes('remote'))) {
+      // Allowed as worldwide remote
+    } else {
+      return { passes: false, reason: `Location "${job.location_raw}" does not match target countries.` };
+    }
   }
 
   // 5. Employment Type Check

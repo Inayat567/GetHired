@@ -230,7 +230,9 @@ export async function updateProfileJobStatus(
   );
 }
 
-export async function getQualifiedJobsForTriage(db: Database, profileId: string = 'default'): Promise<Job[]> {
+export async function getQualifiedJobsForTriage(db: Database, profileId: string = 'default', days?: number): Promise<Job[]> {
+  const daysFilter = days && days > 0 ? `AND datetime(j.created_at) >= datetime('now', '-${days} days')` : '';
+
   const rows = await db.all(
     `SELECT j.*,
        COALESCE(pj.status, j.status) as status,
@@ -243,6 +245,7 @@ export async function getQualifiedJobsForTriage(db: Database, profileId: string 
      LEFT JOIN profile_jobs pj ON j.id = pj.job_id AND pj.profile_id = ?
      WHERE (COALESCE(pj.status, j.status) = 'qualified' OR (COALESCE(pj.status, j.status) = 'pending' AND COALESCE(pj.match_score, j.match_score) >= 70))
        AND COALESCE(pj.status, j.status) NOT IN ('skipped', 'applied')
+       ${daysFilter}
      ORDER BY COALESCE(pj.match_score, j.match_score) DESC, j.created_at DESC
      LIMIT 50`,
     [profileId]
@@ -256,9 +259,11 @@ export async function getQualifiedJobsForTriage(db: Database, profileId: string 
   }));
 }
 
-export async function getJobsForProfile(db: Database, profileId: string = 'default', status: string = 'qualified'): Promise<Job[]> {
+export async function getJobsForProfile(db: Database, profileId: string = 'default', status: string = 'qualified', days?: number): Promise<Job[]> {
+  const daysFilter = days && days > 0 ? `AND datetime(j.created_at) >= datetime('now', '-${days} days')` : '';
+
   if (status === 'qualified') {
-    return getQualifiedJobsForTriage(db, profileId);
+    return getQualifiedJobsForTriage(db, profileId, days);
   }
 
   if (status === 'applied') {
@@ -272,6 +277,7 @@ export async function getJobsForProfile(db: Database, profileId: string = 'defau
        FROM profile_jobs pj
        JOIN jobs j ON pj.job_id = j.id
        WHERE pj.profile_id = ? AND pj.status = 'applied'
+         ${daysFilter}
        ORDER BY pj.updated_at DESC, pj.applied_at DESC
        LIMIT 50`,
       [profileId]
@@ -294,6 +300,7 @@ export async function getJobsForProfile(db: Database, profileId: string = 'defau
        FROM profile_jobs pj
        JOIN jobs j ON pj.job_id = j.id
        WHERE pj.profile_id = ? AND pj.status = 'skipped' AND pj.skipped_by = 'user'
+         ${daysFilter}
        ORDER BY pj.updated_at DESC
        LIMIT 50`,
       [profileId]
@@ -315,6 +322,7 @@ export async function getJobsForProfile(db: Database, profileId: string = 'defau
      FROM jobs j
      LEFT JOIN profile_jobs pj ON j.id = pj.job_id AND pj.profile_id = ?
      WHERE COALESCE(pj.status, j.status) = ?
+       ${daysFilter}
      ORDER BY COALESCE(pj.match_score, j.match_score) DESC, j.created_at DESC
      LIMIT 50`,
     [profileId, status]
@@ -328,27 +336,39 @@ export async function getJobsForProfile(db: Database, profileId: string = 'defau
   }));
 }
 
-export async function getStats(db: Database, profileId: string = 'default') {
-  const total = (await db.get('SELECT COUNT(*) as count FROM jobs'))?.count || 0;
+export async function getStats(db: Database, profileId: string = 'default', days?: number) {
+  const daysFilter = days && days > 0 ? `WHERE datetime(created_at) >= datetime('now', '-${days} days')` : '';
+  const daysFilterAnd = days && days > 0 ? `AND datetime(j.created_at) >= datetime('now', '-${days} days')` : '';
+
+  const total = (await db.get(`SELECT COUNT(*) as count FROM jobs ${daysFilter}`))?.count || 0;
 
   const qualifiedRow = await db.get(
     `SELECT COUNT(*) as count
      FROM jobs j
      LEFT JOIN profile_jobs pj ON j.id = pj.job_id AND pj.profile_id = ?
      WHERE (COALESCE(pj.status, j.status) = 'qualified' OR (COALESCE(pj.status, j.status) = 'pending' AND COALESCE(pj.match_score, j.match_score) >= 70))
-       AND COALESCE(pj.status, j.status) NOT IN ('skipped', 'applied')`,
+       AND COALESCE(pj.status, j.status) NOT IN ('skipped', 'applied')
+       ${daysFilterAnd}`,
     [profileId]
   );
   const qualified = qualifiedRow?.count || 0;
 
   const appliedRow = await db.get(
-    `SELECT COUNT(*) as count FROM profile_jobs WHERE profile_id = ? AND status = 'applied'`,
+    `SELECT COUNT(*) as count
+     FROM profile_jobs pj
+     JOIN jobs j ON pj.job_id = j.id
+     WHERE pj.profile_id = ? AND pj.status = 'applied'
+       ${daysFilterAnd}`,
     [profileId]
   );
   const applied = appliedRow?.count || 0;
 
   const skippedRow = await db.get(
-    `SELECT COUNT(*) as count FROM profile_jobs WHERE profile_id = ? AND status = 'skipped' AND skipped_by = 'user'`,
+    `SELECT COUNT(*) as count
+     FROM profile_jobs pj
+     JOIN jobs j ON pj.job_id = j.id
+     WHERE pj.profile_id = ? AND pj.status = 'skipped' AND pj.skipped_by = 'user'
+       ${daysFilterAnd}`,
     [profileId]
   );
   const skipped = skippedRow?.count || 0;
@@ -357,7 +377,8 @@ export async function getStats(db: Database, profileId: string = 'default') {
     `SELECT COUNT(*) as count
      FROM jobs j
      LEFT JOIN profile_jobs pj ON j.id = pj.job_id AND pj.profile_id = ?
-     WHERE COALESCE(pj.status, j.status) = 'pending'`,
+     WHERE COALESCE(pj.status, j.status) = 'pending'
+       ${daysFilterAnd}`,
     [profileId]
   );
   const pending = pendingRow?.count || 0;
