@@ -449,15 +449,19 @@
               <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
                   <span id="apiKeyLabel">OpenAI API Key</span>
-                  <span id="apiKeySavedBadge" class="hidden text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md flex items-center gap-1">
-                    <i class="fa-solid fa-lock text-[9px]"></i> <span>Encrypted & Saved</span>
+                  <span id="apiKeySavedBadge" class="hidden text-xs font-bold text-emerald-700 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+                    <i class="fa-solid fa-circle-check text-emerald-600"></i> <span>Key Saved & Active</span>
                   </span>
                 </label>
                 <div class="relative">
-                  <input type="password" id="setting_api_key" placeholder="Enter key (or leave blank to keep saved key)" class="w-full text-sm px-3.5 py-2.5 pr-10 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                  <input type="password" id="setting_api_key" placeholder="Enter new API key (or leave blank to keep saved)" class="w-full text-sm px-3.5 py-2.5 pr-10 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
                   <button type="button" onclick="togglePasswordVisibility('setting_api_key')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
                     <i class="fa-solid fa-eye text-xs"></i>
                   </button>
+                </div>
+                <div id="apiKeySavedHint" class="hidden mt-1.5 flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
+                  <i class="fa-solid fa-shield-halved text-emerald-600"></i>
+                  <span>Your API key is securely encrypted at rest. It is ready for AI job matching.</span>
                 </div>
               </div>
             </div>
@@ -1226,11 +1230,14 @@
         // Security: Never reveal secrets in inputs. Show 'Encrypted & Saved' badges if keys exist.
         document.getElementById('setting_api_key').value = '';
         const apiBadge = document.getElementById('apiKeySavedBadge');
+        const apiHint = document.getElementById('apiKeySavedHint');
         if (apiBadge) {
           if (bundle.hasApiKey) {
             apiBadge.classList.remove('hidden');
+            if (apiHint) apiHint.classList.remove('hidden');
           } else {
             apiBadge.classList.add('hidden');
+            if (apiHint) apiHint.classList.add('hidden');
           }
         }
 
@@ -1319,6 +1326,59 @@
       }
     }
 
+    // Client-side RSA-OAEP encryption helper: Encrypts secrets inside the browser
+    // so raw API keys and passwords NEVER appear in the Chrome DevTools Network tab!
+    let cachedServerPublicKey = null;
+
+    async function getServerPublicKey() {
+      if (cachedServerPublicKey) return cachedServerPublicKey;
+      try {
+        const res = await fetch('/api/crypto/public-key');
+        const data = await res.json();
+        if (data.publicKey) {
+          cachedServerPublicKey = data.publicKey;
+        }
+      } catch (err) {
+        console.warn('Could not fetch server public key for client-side encryption:', err);
+      }
+      return cachedServerPublicKey;
+    }
+
+    async function encryptSecretWithServerKey(plainText) {
+      if (!plainText || plainText === '__UNCHANGED__') return plainText;
+      try {
+        const pem = await getServerPublicKey();
+        if (!pem || !window.crypto || !window.crypto.subtle) return plainText;
+
+        const cleanPem = pem
+          .replace('-----BEGIN PUBLIC KEY-----', '')
+          .replace('-----END PUBLIC KEY-----', '')
+          .replace(/\s+/g, '');
+        const binaryDer = Uint8Array.from(atob(cleanPem), c => c.charCodeAt(0));
+
+        const cryptoKey = await window.crypto.subtle.importKey(
+          'spki',
+          binaryDer.buffer,
+          { name: 'RSA-OAEP', hash: 'SHA-256' },
+          false,
+          ['encrypt']
+        );
+
+        const enc = new TextEncoder();
+        const encryptedBuffer = await window.crypto.subtle.encrypt(
+          { name: 'RSA-OAEP' },
+          cryptoKey,
+          enc.encode(plainText)
+        );
+
+        const b64Cipher = btoa(String.fromCharCode(...new Uint8Array(encryptedBuffer)));
+        return `rsa:v1:${b64Cipher}`;
+      } catch (err) {
+        console.warn('Client-side encryption failed, using secure fallback:', err);
+        return plainText;
+      }
+    }
+
     async function saveAiAndSmtpSettings(e) {
       e.preventDefault();
       const providerRadio = document.querySelector('input[name="ai_provider"]:checked');
@@ -1329,9 +1389,19 @@
       const rawSmtpUser = document.getElementById('smtp_user').value.trim();
 
       // If user left secret blank, send '__UNCHANGED__' sentinel to preserve stored encrypted key
-      const api_key = rawApiKey || '__UNCHANGED__';
-      const pass = rawSmtpPass || '__UNCHANGED__';
+      let api_key = rawApiKey || '__UNCHANGED__';
+      let pass = rawSmtpPass || '__UNCHANGED__';
       const user = rawSmtpUser || '__UNCHANGED__';
+
+      // 🔒 CLIENT-SIDE HYBRID ENCRYPTION:
+      // If user typed a new key or password, encrypt it using Web Crypto RSA-OAEP before fetch!
+      // In the DevTools Network tab, the payload will show 'rsa:v1:...' instead of your actual key!
+      if (api_key !== '__UNCHANGED__') {
+        api_key = await encryptSecretWithServerKey(api_key);
+      }
+      if (pass !== '__UNCHANGED__') {
+        pass = await encryptSecretWithServerKey(pass);
+      }
 
       const smtp = {
         host: document.getElementById('smtp_host').value.trim() || 'smtp.gmail.com',

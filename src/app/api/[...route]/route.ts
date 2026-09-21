@@ -16,6 +16,7 @@ import {
   validateProfileCompleteness,
 } from '@/config/profileManager';
 import { AI_MODELS_BY_PROVIDER } from '@/types';
+import { getClientEncryptionPublicKey } from '@/config/secrets';
 import { runIngestion } from '@/scrapers/ingestionService';
 import { evaluatePendingJobs } from '@/llm/evaluator';
 import { sendPitchEmail, testSmtpConnection, sendLiveTestEmail } from '@/mailer/mailer';
@@ -211,6 +212,11 @@ export async function GET(req: Request, context: { params: Promise<{ route: stri
     // 13. LinkedIn Status
     if (pathname === '/api/linkedin/status') {
       return NextResponse.json({ connected: isLinkedInConnected() });
+    }
+
+    // 14. Client-Side Encryption Public Key (for encrypting secrets in browser before transmission)
+    if (pathname === '/api/crypto/public-key') {
+      return NextResponse.json({ publicKey: getClientEncryptionPublicKey() });
     }
 
     return NextResponse.json({ error: `Route ${pathname} not found.` }, { status: 404 });

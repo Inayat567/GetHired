@@ -62,3 +62,50 @@ export function decryptSecret(encryptedPayload: string, context: string = 'defau
     return '';
   }
 }
+
+// In-memory RSA-OAEP keypair for client-to-server payload encryption
+let rsaKeyPair: { publicKey: string; privateKey: string } | null = null;
+
+function getOrGenerateRsaKeys() {
+  if (!rsaKeyPair) {
+    rsaKeyPair = crypto.generateKeyPairSync('rsa', {
+      modulusLength: 2048,
+      publicKeyEncoding: { type: 'spki', format: 'pem' },
+      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+    });
+  }
+  return rsaKeyPair;
+}
+
+/**
+ * Returns the public key in PEM format so the browser can encrypt payloads before transmission
+ */
+export function getClientEncryptionPublicKey(): string {
+  return getOrGenerateRsaKeys().publicKey;
+}
+
+/**
+ * Decrypts a payload encrypted by the browser using RSA-OAEP SHA-256
+ * Payload format: rsa:v1:<base64_ciphertext>
+ */
+export function decryptClientPayload(val: string): string {
+  if (!val || typeof val !== 'string') return '';
+  if (!val.startsWith('rsa:v1:')) return val; // plain text fallback
+
+  try {
+    const cipherB64 = val.slice('rsa:v1:'.length);
+    const { privateKey } = getOrGenerateRsaKeys();
+    const decrypted = crypto.privateDecrypt(
+      {
+        key: privateKey,
+        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+        oaepHash: 'sha256',
+      },
+      Buffer.from(cipherB64, 'base64')
+    );
+    return decrypted.toString('utf8');
+  } catch (err) {
+    console.error('[Secrets] Failed to decrypt RSA client payload:', err);
+    return '';
+  }
+}

@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { CandidateProfile, CandidateProfileSchema, Preferences, PreferencesSchema, UserSettings, UserSettingsSchema } from '../types';
-import { encryptSecret, decryptSecret } from './secrets';
+import { encryptSecret, decryptSecret, decryptClientPayload } from './secrets';
 
 export interface UserProfileBundle {
   id: string;
@@ -271,8 +271,13 @@ export function saveUserSettings(profileId: string, incomingSettings: any) {
     }
   }
 
-  // Resolve API Key: if __UNCHANGED__ or empty and we have an existing stored key, preserve it
-  let resolvedApiKey = incomingSettings.api_key;
+  // Resolve API Key: if encrypted with RSA from client, decrypt first
+  let rawIncomingKey = incomingSettings.api_key;
+  if (rawIncomingKey && typeof rawIncomingKey === 'string' && rawIncomingKey.startsWith('rsa:v1:')) {
+    rawIncomingKey = decryptClientPayload(rawIncomingKey);
+  }
+
+  let resolvedApiKey = rawIncomingKey;
   if (resolvedApiKey === '__UNCHANGED__' || (!resolvedApiKey && existingSettings.api_key)) {
     resolvedApiKey = existingSettings.api_key; // already encrypted or plain
   } else if (resolvedApiKey && resolvedApiKey.trim() !== '') {
@@ -284,7 +289,12 @@ export function saveUserSettings(profileId: string, incomingSettings: any) {
 
   // Resolve SMTP Settings & Password
   const incomingSmtp = incomingSettings.smtp || {};
-  let resolvedSmtpPass = incomingSmtp.pass;
+  let rawIncomingSmtpPass = incomingSmtp.pass;
+  if (rawIncomingSmtpPass && typeof rawIncomingSmtpPass === 'string' && rawIncomingSmtpPass.startsWith('rsa:v1:')) {
+    rawIncomingSmtpPass = decryptClientPayload(rawIncomingSmtpPass);
+  }
+
+  let resolvedSmtpPass = rawIncomingSmtpPass;
   if (resolvedSmtpPass === '__UNCHANGED__' || (!resolvedSmtpPass && existingSettings.smtp?.pass)) {
     resolvedSmtpPass = existingSettings.smtp?.pass || '';
   } else if (resolvedSmtpPass && resolvedSmtpPass.trim() !== '') {
