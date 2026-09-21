@@ -9,6 +9,7 @@ primary_region = "ams"
 [env]
   NODE_ENV = "production"
   PORT = "3000"
+  APP_URL = "https://gethired.innunext.com"
   SQLITE_DB_PATH = "/data/jobs.db"
   PROFILES_DIR = "/data/profiles"
 

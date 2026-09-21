@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { getPublicBaseUrl } from './utils/url';
 
 // In-memory rate limiting tracker (per IP/route)
 interface RateLimitRecord {
@@ -56,8 +57,9 @@ export async function middleware(req: NextRequest) {
     const sessionCookie = req.cookies.get('gethired_session')?.value;
 
     // If no cookie exists, redirect to home with auth_required notice
+    const baseUrl = getPublicBaseUrl(req);
     if (!sessionCookie) {
-      const redirectUrl = new URL('/', req.url);
+      const redirectUrl = new URL('/', baseUrl);
       redirectUrl.searchParams.set('auth_required', 'true');
       return NextResponse.redirect(redirectUrl);
     }
@@ -83,7 +85,7 @@ export async function middleware(req: NextRequest) {
       return NextResponse.next();
     } catch {
       // Invalid or expired token: clear cookie and redirect to home with session_expired notice
-      const redirectUrl = new URL('/', req.url);
+      const redirectUrl = new URL('/', baseUrl);
       redirectUrl.searchParams.set('session_expired', 'true');
       const response = NextResponse.redirect(redirectUrl);
       response.cookies.set('gethired_session', '', {

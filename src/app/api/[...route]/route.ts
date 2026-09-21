@@ -31,6 +31,7 @@ import {
   sendEmailOtp,
   verifyEmailOtp,
 } from '@/auth/authService';
+import { getPublicBaseUrl } from '@/utils/url';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,9 +70,8 @@ export async function GET(req: Request, context: { params: Promise<{ route: stri
 
     // 2. GitHub OAuth Entry
     if (pathname === '/api/auth/github') {
-      const protocol = req.headers.get('x-forwarded-proto') || (url.protocol.replace(':', '')) || 'http';
-      const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || url.host;
-      const redirectUri = `${protocol}://${host}/api/auth/github/callback`;
+      const baseUrl = getPublicBaseUrl(req);
+      const redirectUri = `${baseUrl}/api/auth/github/callback`;
       try {
         const authUrl = getGitHubAuthUrl(redirectUri);
         return NextResponse.redirect(authUrl);
@@ -85,15 +85,14 @@ export async function GET(req: Request, context: { params: Promise<{ route: stri
       const code = searchParams.get('code');
       if (!code) return NextResponse.json({ error: 'Missing GitHub code parameter.' }, { status: 400 });
 
-      const protocol = req.headers.get('x-forwarded-proto') || (url.protocol.replace(':', '')) || 'http';
-      const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || url.host;
-      const redirectUri = `${protocol}://${host}/api/auth/github/callback`;
+      const baseUrl = getPublicBaseUrl(req);
+      const redirectUri = `${baseUrl}/api/auth/github/callback`;
 
       try {
         const user = await handleGitHubCallback(code, redirectUri, db);
         const token = createSessionToken(user.id, user.email);
 
-        const res = NextResponse.redirect(new URL('/dashboard', req.url));
+        const res = NextResponse.redirect(new URL('/dashboard', baseUrl));
         res.cookies.set('gethired_session', token, {
           path: '/',
           httpOnly: true,
@@ -103,15 +102,14 @@ export async function GET(req: Request, context: { params: Promise<{ route: stri
         return res;
       } catch (err: any) {
         console.error('[GitHub Auth Error]', err);
-        return NextResponse.redirect(new URL('/dashboard?error=' + encodeURIComponent(err.message), req.url));
+        return NextResponse.redirect(new URL('/dashboard?error=' + encodeURIComponent(err.message), baseUrl));
       }
     }
 
     // 4. Google OAuth Entry
     if (pathname === '/api/auth/google') {
-      const protocol = req.headers.get('x-forwarded-proto') || (url.protocol.replace(':', '')) || 'http';
-      const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || url.host;
-      const redirectUri = `${protocol}://${host}/api/auth/google/callback`;
+      const baseUrl = getPublicBaseUrl(req);
+      const redirectUri = `${baseUrl}/api/auth/google/callback`;
       try {
         const authUrl = getGoogleAuthUrl(redirectUri);
         return NextResponse.redirect(authUrl);
@@ -125,15 +123,14 @@ export async function GET(req: Request, context: { params: Promise<{ route: stri
       const code = searchParams.get('code');
       if (!code) return NextResponse.json({ error: 'Missing Google code parameter.' }, { status: 400 });
 
-      const protocol = req.headers.get('x-forwarded-proto') || (url.protocol.replace(':', '')) || 'http';
-      const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || url.host;
-      const redirectUri = `${protocol}://${host}/api/auth/google/callback`;
+      const baseUrl = getPublicBaseUrl(req);
+      const redirectUri = `${baseUrl}/api/auth/google/callback`;
 
       try {
         const user = await handleGoogleCallback(code, redirectUri, db);
         const token = createSessionToken(user.id, user.email);
 
-        const res = NextResponse.redirect(new URL('/dashboard', req.url));
+        const res = NextResponse.redirect(new URL('/dashboard', baseUrl));
         res.cookies.set('gethired_session', token, {
           path: '/',
           httpOnly: true,
@@ -143,7 +140,7 @@ export async function GET(req: Request, context: { params: Promise<{ route: stri
         return res;
       } catch (err: any) {
         console.error('[Google Auth Error]', err);
-        return NextResponse.redirect(new URL('/dashboard?error=' + encodeURIComponent(err.message), req.url));
+        return NextResponse.redirect(new URL('/dashboard?error=' + encodeURIComponent(err.message), baseUrl));
       }
     }
 
