@@ -464,7 +464,13 @@
 
               <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
-                  <span id="apiKeyLabel">OpenAI API Key</span>
+                  <span class="flex items-center gap-1.5">
+                    <span id="apiKeyLabel">OpenAI API Key</span>
+                    <button type="button" onclick="openApiKeyHelpModal()" class="text-indigo-600 hover:text-indigo-800 transition flex items-center gap-1 text-[11px] font-medium" title="API Key Security & Encryption">
+                      <i class="fa-solid fa-circle-info"></i>
+                      <span class="underline">Encrypted</span>
+                    </button>
+                  </span>
                   <span id="apiKeySavedBadge" class="hidden text-xs font-bold text-emerald-700 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
                     <i class="fa-solid fa-circle-check text-emerald-600"></i> <span>Key Saved & Active</span>
                   </span>
@@ -475,6 +481,10 @@
                     <i class="fa-solid fa-eye text-xs"></i>
                   </button>
                 </div>
+                <p class="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
+                  <i class="fa-solid fa-shield-halved text-emerald-600 text-[10px]"></i>
+                  <span>End-to-end encrypted at rest. No one can check or read your keys.</span>
+                </p>
                 <div id="apiKeySavedHint" class="hidden mt-1.5 flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
                   <i class="fa-solid fa-shield-halved text-emerald-600"></i>
                   <span>Your API key is securely encrypted at rest. It is ready for AI job matching.</span>
@@ -516,7 +526,13 @@
                 </div>
                 <div>
                   <label class="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
-                    <span>Password / App Password</span>
+                    <span class="flex items-center gap-1.5">
+                      <span>Password / App Password</span>
+                      <button type="button" onclick="openSmtpHelpModal()" class="text-indigo-600 hover:text-indigo-800 transition flex items-center gap-1 text-[11px] font-medium" title="How to generate Gmail App Password & Security Info">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <span class="underline">How to generate?</span>
+                      </button>
+                    </span>
                     <span id="smtpPassSavedBadge" class="hidden text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md flex items-center gap-1">
                       <i class="fa-solid fa-lock text-[9px]"></i> <span>Saved</span>
                     </span>
@@ -527,6 +543,10 @@
                       <i class="fa-solid fa-eye text-xs"></i>
                     </button>
                   </div>
+                  <p class="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
+                    <i class="fa-solid fa-shield-halved text-emerald-600 text-[10px]"></i>
+                    <span>End-to-end encrypted. No one can check or read your password.</span>
+                  </p>
                 </div>
               </div>
 
@@ -895,6 +915,126 @@
     </div>
   </div>
 
+  <!-- =================================================================== -->
+  <!-- SMTP GMAIL APP PASSWORD & ENCRYPTION HELP MODAL                     -->
+  <!-- =================================================================== -->
+  <div id="smtpHelpModal" onclick="if(event.target===this)closeSmtpHelpModal()" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 relative transform transition-all">
+      <button onclick="closeSmtpHelpModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-700 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shadow-sm">
+          <i class="fa-solid fa-key text-lg"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-black text-slate-900">Gmail App Password Setup</h3>
+          <p class="text-xs text-slate-500">How to generate a 16-character password for automated job outreach</p>
+        </div>
+      </div>
+
+      <!-- Security Guarantee Banner -->
+      <div class="mb-4 bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 flex items-start gap-3">
+        <i class="fa-solid fa-shield-halved text-emerald-600 text-lg mt-0.5"></i>
+        <div>
+          <h4 class="text-xs font-bold text-emerald-900">End-to-End Encrypted & Zero-Knowledge</h4>
+          <p class="text-[11px] text-emerald-800 leading-relaxed mt-0.5">
+            Your credentials, passwords, and API keys are <strong>AES-256 encrypted</strong> before saving. <strong>No one (including platform administrators) can view your raw passwords or keys.</strong> They are only decrypted in-memory when you trigger a cold email application.
+          </p>
+        </div>
+      </div>
+
+      <!-- Step-by-Step Instructions -->
+      <div class="space-y-2.5 text-xs text-slate-700 bg-slate-50 p-4 rounded-xl border border-slate-200">
+        <h4 class="font-bold text-slate-900 text-xs uppercase tracking-wider mb-2 flex items-center gap-1.5">
+          <i class="fa-brands fa-google text-red-500"></i> Step-by-step Gmail Guide:
+        </h4>
+        <div class="flex items-start gap-2.5">
+          <span class="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[11px] flex items-center justify-center flex-shrink-0">1</span>
+          <span>Go to your Google Account security settings at <a href="https://myaccount.google.com/security" target="_blank" rel="noreferrer" class="text-indigo-600 underline font-semibold hover:text-indigo-700">myaccount.google.com/security</a>.</span>
+        </div>
+        <div class="flex items-start gap-2.5">
+          <span class="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[11px] flex items-center justify-center flex-shrink-0">2</span>
+          <span>Ensure <strong>2-Step Verification</strong> is turned <strong>ON</strong> (required by Google).</span>
+        </div>
+        <div class="flex items-start gap-2.5">
+          <span class="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[11px] flex items-center justify-center flex-shrink-0">3</span>
+          <span>In the search bar at the top, search for <strong>"App passwords"</strong> (or visit <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" class="text-indigo-600 underline font-semibold hover:text-indigo-700">myaccount.google.com/apppasswords</a>).</span>
+        </div>
+        <div class="flex items-start gap-2.5">
+          <span class="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[11px] flex items-center justify-center flex-shrink-0">4</span>
+          <span>Enter <strong>GetHired</strong> as the app name and click <strong>Create</strong>.</span>
+        </div>
+        <div class="flex items-start gap-2.5">
+          <span class="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[11px] flex items-center justify-center flex-shrink-0">5</span>
+          <span>Copy the generated <strong>16-character code</strong> (e.g. <code class="bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded font-mono font-bold">abcd efgh ijkl mnop</code>) and paste it into the password field.</span>
+        </div>
+      </div>
+
+      <div class="mt-5 flex justify-end">
+        <button onclick="closeSmtpHelpModal()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow transition">
+          Got It, Thanks!
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- API KEY ENCRYPTION & SECURITY HELP MODAL                            -->
+  <!-- =================================================================== -->
+  <div id="apiKeyHelpModal" onclick="if(event.target===this)closeApiKeyHelpModal()" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 relative transform transition-all">
+      <button onclick="closeApiKeyHelpModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-700 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-sm">
+          <i class="fa-solid fa-shield-halved text-lg"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-black text-slate-900">API Key Privacy & Encryption</h3>
+          <p class="text-xs text-slate-500">Zero-knowledge storage and enterprise-grade encryption</p>
+        </div>
+      </div>
+
+      <!-- Security Details -->
+      <div class="space-y-3 text-xs text-slate-700">
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 flex items-start gap-3">
+          <i class="fa-solid fa-lock text-emerald-600 text-base mt-0.5"></i>
+          <div>
+            <h4 class="font-bold text-emerald-950 text-xs">End-to-End Encrypted at Rest</h4>
+            <p class="text-[11px] text-emerald-800 leading-relaxed mt-0.5">
+              Your API keys are encrypted with <strong>AES-256 encryption</strong> before being saved. <strong>No one can check or read your keys</strong>, not even system administrators.
+            </p>
+          </div>
+        </div>
+
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
+          <div class="flex items-start gap-2.5">
+            <i class="fa-solid fa-circle-check text-indigo-600 mt-0.5"></i>
+            <span><strong>Ephemerally Decrypted</strong>: Keys are only decrypted in-memory on demand when running job matching and pitch evaluations for your active session.</span>
+          </div>
+          <div class="flex items-start gap-2.5">
+            <i class="fa-solid fa-circle-check text-indigo-600 mt-0.5"></i>
+            <span><strong>Never Shared or Logged</strong>: Your keys are never sent to third parties, printed in application logs, or used for any account other than your own.</span>
+          </div>
+          <div class="flex items-start gap-2.5">
+            <i class="fa-solid fa-circle-check text-indigo-600 mt-0.5"></i>
+            <span><strong>Full Control</strong>: You can change, overwrite, or delete your API key at any time from your settings panel.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-5 flex justify-end">
+        <button onclick="closeApiKeyHelpModal()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow transition">
+          I Understand
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Floating Toast Notification -->
   <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition duration-300 flex items-center space-x-2.5 bg-slate-900 text-white text-sm px-5 py-3.5 rounded-xl shadow-2xl border border-slate-800">
     <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
@@ -960,6 +1100,22 @@
 
     function closeAuthModal() {
       document.getElementById('authModal').classList.add('hidden');
+    }
+
+    function openSmtpHelpModal() {
+      document.getElementById('smtpHelpModal').classList.remove('hidden');
+    }
+
+    function closeSmtpHelpModal() {
+      document.getElementById('smtpHelpModal').classList.add('hidden');
+    }
+
+    function openApiKeyHelpModal() {
+      document.getElementById('apiKeyHelpModal').classList.remove('hidden');
+    }
+
+    function closeApiKeyHelpModal() {
+      document.getElementById('apiKeyHelpModal').classList.add('hidden');
     }
 
     async function handleSendOtp(e) {
