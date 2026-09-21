@@ -14,7 +14,6 @@ export async function fetchLinkedInGuestJobs(
       keywords
     )}&location=${encodeURIComponent(location)}&f_TPR=r${seconds}&f_WT=2`;
 
-    console.log(`[LinkedIn Guest] Requesting: ${url}`);
     const response = await fetch(url, {
       headers: {
         'User-Agent':
@@ -25,12 +24,11 @@ export async function fetchLinkedInGuestJobs(
     });
 
     if (!response.ok) {
-      console.warn(`[LinkedIn Guest] ⚠️ Search for "${keywords}" in ${location} returned HTTP ${response.status}: ${response.statusText}`);
+      console.warn(`[LinkedIn Guest] Search returned HTTP ${response.status}`);
       return [];
     }
 
     const html = await response.text();
-    console.log(`[LinkedIn Guest] Received response for ${location}: ${html.length} bytes`);
     const $ = cheerio.load(html);
 
     $('li, .job-search-card, .base-card').each((_, el) => {
@@ -55,12 +53,6 @@ export async function fetchLinkedInGuestJobs(
         });
       }
     });
-
-    if (results.length === 0) {
-      console.warn(`[LinkedIn Guest] ⚠️ 0 listings parsed for "${keywords}" in ${location}. (Snippet: ${html.slice(0, 180).replace(/\s+/g, ' ')})`);
-    } else {
-      console.log(`[LinkedIn Guest] ✅ Extracted ${results.length} listings for "${keywords}" in ${location}`);
-    }
   } catch (err: any) {
     console.error(`[LinkedIn Guest] Error fetching jobs for ${location}:`, err.message);
   }
