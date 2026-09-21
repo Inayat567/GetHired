@@ -20,7 +20,7 @@ import { getClientEncryptionPublicKey } from '@/config/secrets';
 import { runIngestion } from '@/scrapers/ingestionService';
 import { evaluatePendingJobs } from '@/llm/evaluator';
 import { sendPitchEmail, testSmtpConnection, sendLiveTestEmail } from '@/mailer/mailer';
-import { isLinkedInConnected, connectLinkedInSession, disconnectLinkedIn } from '@/scrapers/linkedinAuth';
+import { isLinkedInConnected, connectLinkedInSession, disconnectLinkedIn, isHeadlessCloudEnvironment } from '@/scrapers/linkedinAuth';
 import {
   getSessionFromCookie,
   createSessionToken,
@@ -212,7 +212,10 @@ export async function GET(req: Request, context: { params: Promise<{ route: stri
 
     // 13. LinkedIn Status
     if (pathname === '/api/linkedin/status') {
-      return NextResponse.json({ connected: isLinkedInConnected() });
+      return NextResponse.json({
+        connected: isLinkedInConnected(),
+        isCloud: isHeadlessCloudEnvironment(),
+      });
     }
 
     // 14. Client-Side Encryption Public Key (for encrypting secrets in browser before transmission)

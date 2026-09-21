@@ -182,12 +182,6 @@
           <span id="headerAiText">OpenAI</span>
         </div>
 
-        <!-- LinkedIn Status Badge -->
-        <div id="headerLinkedInBadge" onclick="switchTab('settings')" class="hidden 2xl:flex items-center space-x-1.5 text-xs bg-slate-800/90 hover:bg-slate-700 text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-700 cursor-pointer transition">
-          <i class="fa-brands fa-linkedin text-slate-400" id="headerLinkedInIcon"></i>
-          <span id="headerLinkedInText">LinkedIn</span>
-        </div>
-
         <!-- User Authentication Header Component -->
         <div id="authHeaderContainer" class="flex items-center">
           <!-- Unauthenticated State Button -->
@@ -357,43 +351,6 @@
     <!-- =================================================================== -->
     <div id="tab-settings" class="tab-content hidden">
       <div class="max-w-4xl mx-auto space-y-6">
-
-        <!-- LinkedIn Session Card -->
-        <div class="bg-white p-6 sm:p-7 rounded-2xl border border-slate-200 shadow-sm">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div class="flex items-start sm:items-center space-x-3.5">
-              <div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl flex-shrink-0">
-                <i class="fa-brands fa-linkedin"></i>
-              </div>
-              <div>
-                <div class="flex items-center space-x-2">
-                  <h3 class="text-base font-bold text-slate-900">LinkedIn Session Context</h3>
-                  <span id="linkedInStatusBadge" class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-slate-100 text-slate-500 border border-slate-200">Checking...</span>
-                </div>
-                <p class="text-xs text-slate-500 mt-0.5">Scrapes informal "We are hiring React Native developers, email me at..." posts and extracts recruiter direct emails without bans.</p>
-              </div>
-            </div>
-
-            <div class="flex items-center space-x-2 flex-shrink-0">
-              <button type="button" onclick="connectLinkedIn()" id="connectLinkedInBtn" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition flex items-center space-x-2">
-                <i class="fa-brands fa-linkedin"></i>
-                <span id="connectLinkedInBtnText">Connect LinkedIn</span>
-              </button>
-              <button type="button" onclick="disconnectLinkedIn()" id="disconnectLinkedInBtn" class="hidden text-slate-400 hover:text-rose-600 text-xs px-3 py-2.5 rounded-xl hover:bg-slate-100 transition" title="Disconnect Session">
-                <i class="fa-solid fa-link-slash"></i>
-              </button>
-            </div>
-          </div>
-
-          <!-- Connecting Status Banner -->
-          <div id="linkedInConnectingNotice" class="hidden mt-4 p-3.5 bg-blue-50 rounded-xl border border-blue-200 text-xs text-blue-900 flex items-center space-x-3">
-            <i class="fa-solid fa-spinner fa-spin text-lg text-blue-600 flex-shrink-0"></i>
-            <div>
-              <p class="font-bold">Opening browser for LinkedIn login...</p>
-              <p class="text-[11px] text-blue-700 mt-0.5">Log into your LinkedIn account in the opened Chrome window. As soon as you log in, GetHired will automatically capture your session cookies and close the window!</p>
-            </div>
-          </div>
-        </div>
 
         <!-- AI Provider Card -->
         <div class="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm">
@@ -1065,7 +1022,6 @@
       await loadProfileData(resolvedProfileId || activeProfile);
       await loadJobs(currentStatusFilter);
       await loadStats();
-      await checkLinkedInStatus();
     }
 
     async function checkAuth() {
@@ -2082,78 +2038,6 @@
       } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-envelope-circle-check mr-1.5"></i> Test Connection';
-      }
-    }
-
-    async function checkLinkedInStatus() {
-      try {
-        const res = await fetch('/api/linkedin/status');
-        const data = await res.json();
-        const badge = document.getElementById('linkedInStatusBadge');
-        const headerBadge = document.getElementById('headerLinkedInBadge');
-        const headerText = document.getElementById('headerLinkedInText');
-        const headerIcon = document.getElementById('headerLinkedInIcon');
-        const connectBtn = document.getElementById('connectLinkedInBtn');
-        const connectBtnText = document.getElementById('connectLinkedInBtnText');
-        const disconnectBtn = document.getElementById('disconnectLinkedInBtn');
-
-        if (data.connected) {
-          badge.className = 'text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800 border border-emerald-300';
-          badge.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> Connected';
-          headerText.textContent = 'LinkedIn: Connected';
-          headerIcon.className = 'fa-brands fa-linkedin text-blue-400';
-          connectBtn.className = 'bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-300 transition flex items-center space-x-1.5';
-          connectBtnText.textContent = 'Reconnect Session';
-          disconnectBtn.classList.remove('hidden');
-        } else {
-          badge.className = 'text-xs px-2.5 py-0.5 rounded-full font-bold bg-slate-100 text-slate-500 border border-slate-200';
-          badge.textContent = 'Not Connected';
-          headerText.textContent = 'LinkedIn: Not Connected';
-          headerIcon.className = 'fa-brands fa-linkedin text-slate-400';
-          connectBtn.className = 'bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition flex items-center space-x-2';
-          connectBtnText.textContent = 'Connect LinkedIn';
-          disconnectBtn.classList.add('hidden');
-        }
-      } catch (err) {
-        console.error('Error checking LinkedIn status:', err);
-      }
-    }
-
-    async function connectLinkedIn() {
-      const btn = document.getElementById('connectLinkedInBtn');
-      const notice = document.getElementById('linkedInConnectingNotice');
-      btn.disabled = true;
-      notice.classList.remove('hidden');
-      showToast('Opening LinkedIn login in a Chrome window... Please log in.');
-
-      try {
-        const res = await fetch('/api/linkedin/connect', { method: 'POST' });
-        const data = await res.json();
-        notice.classList.add('hidden');
-
-        if (data.success) {
-          showToast(data.message || 'LinkedIn connected successfully!');
-          await checkLinkedInStatus();
-        } else {
-          showToast(data.message || 'Failed to connect LinkedIn', true);
-        }
-      } catch (err) {
-        notice.classList.add('hidden');
-        showToast(err.message, true);
-      } finally {
-        btn.disabled = false;
-      }
-    }
-
-    async function disconnectLinkedIn() {
-      if (!confirm('Disconnect your saved LinkedIn browser session?')) return;
-      try {
-        const res = await fetch('/api/linkedin/disconnect', { method: 'POST' });
-        const data = await res.json();
-        showToast(data.message || 'LinkedIn session removed.');
-        await checkLinkedInStatus();
-      } catch (err) {
-        showToast(err.message, true);
       }
     }
 

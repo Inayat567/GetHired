@@ -36,7 +36,19 @@ export function disconnectLinkedIn(): boolean {
   return true;
 }
 
+export function isHeadlessCloudEnvironment(): boolean {
+  return process.env.NODE_ENV === 'production' || (!process.env.DISPLAY && process.platform === 'linux');
+}
+
 export async function connectLinkedInSession(): Promise<{ success: boolean; message: string }> {
+  if (isHeadlessCloudEnvironment()) {
+    return {
+      success: false,
+      message:
+        'Interactive LinkedIn login requires a local desktop display (localhost). On the cloud/web, LinkedIn jobs are automatically discovered via the built-in Public LinkedIn Guest Engine without requiring personal login.',
+    };
+  }
+
   let playwright;
   try {
     playwright = require('playwright');

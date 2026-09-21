@@ -20,7 +20,7 @@ import { AI_MODELS_BY_PROVIDER } from '../types';
 import { runIngestion } from '../scrapers/ingestionService';
 import { evaluatePendingJobs } from '../llm/evaluator';
 import { sendPitchEmail, testSmtpConnection, sendLiveTestEmail } from '../mailer/mailer';
-import { isLinkedInConnected, connectLinkedInSession, disconnectLinkedIn } from '../scrapers/linkedinAuth';
+import { isLinkedInConnected, connectLinkedInSession, disconnectLinkedIn, isHeadlessCloudEnvironment } from '../scrapers/linkedinAuth';
 import {
   getSessionFromCookie,
   createSessionToken,
@@ -441,7 +441,7 @@ export async function startServer() {
 
       // API: LinkedIn Status
       if (pathname === '/api/linkedin/status' && method === 'GET') {
-        return sendJson(res, 200, { connected: isLinkedInConnected() });
+        return sendJson(res, 200, { connected: isLinkedInConnected(), isCloud: isHeadlessCloudEnvironment() });
       }
 
       // API: Connect LinkedIn (Opens headed browser, waits for user login, auto-closes)
