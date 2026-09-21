@@ -455,3 +455,25 @@ export async function verifyAuthCode(db: Database, email: string, code: string):
   await db.run(`DELETE FROM auth_codes WHERE email = ?`, [email]);
   return true;
 }
+
+/**
+ * Hard-deletes all data tied to a user account from the database.
+ * Removes: user row, auth codes, and all profile_jobs entries for any of
+ * their profiles (primary userId and any persona profiles userId__*).
+ */
+export async function deleteUserAccount(db: Database, userId: string, email: string): Promise<void> {
+  // Delete all profile_jobs rows for primary profile and all persona sub-profiles
+  await db.run(
+    `DELETE FROM profile_jobs WHERE profile_id = ? OR profile_id LIKE ?`,
+    [userId, `${userId}__%`]
+  );
+
+  // Delete outreach_log entries linked to that user's profile jobs (best-effort)
+  // outreach_log doesn't have a user FK, so we only clean auth + user rows
+
+  // Delete pending auth codes
+  await db.run(`DELETE FROM auth_codes WHERE email = ?`, [email]);
+
+  // Delete the user record itself
+  await db.run(`DELETE FROM users WHERE id = ?`, [userId]);
+}

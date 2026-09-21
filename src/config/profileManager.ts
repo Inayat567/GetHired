@@ -462,3 +462,33 @@ export function validateProfileCompleteness(profileId: string = 'default'): { is
     warnings,
   };
 }
+
+/**
+ * Permanently deletes all profile directories belonging to a user from the filesystem.
+ * Removes: profiles/{userId}/ and profiles/{userId}__* directories.
+ * Returns the list of deleted directory paths.
+ */
+export function deleteUserProfileFiles(userId: string): string[] {
+  ensureProfilesDirectory();
+  const deleted: string[] = [];
+
+  try {
+    const entries = fs.readdirSync(PROFILES_ROOT, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      if (entry.name === userId || entry.name.startsWith(`${userId}__`)) {
+        const dirPath = path.join(PROFILES_ROOT, entry.name);
+        try {
+          fs.rmSync(dirPath, { recursive: true, force: true });
+          deleted.push(dirPath);
+        } catch (err) {
+          console.error(`[deleteUserProfileFiles] Failed to remove ${dirPath}:`, err);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[deleteUserProfileFiles] Error reading profiles directory:', err);
+  }
+
+  return deleted;
+}

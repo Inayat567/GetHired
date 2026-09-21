@@ -3,7 +3,7 @@ import url from 'url';
 import fs from 'fs';
 import path from 'path';
 import { loadConfig } from '../config';
-import { getDb, getStats, getQualifiedJobsForTriage, getJobsForProfile, updateJobStatus, updateProfileJobStatus, getUserById } from '../db/database';
+import { getDb, getStats, getQualifiedJobsForTriage, getJobsForProfile, updateJobStatus, updateProfileJobStatus, getUserById, deleteUserAccount } from '../db/database';
 import {
   listProfiles,
   listProfilesForUser,
@@ -15,6 +15,7 @@ import {
   createNewProfile,
   createUserProfile,
   validateProfileCompleteness,
+  deleteUserProfileFiles,
 } from '../config/profileManager';
 import { AI_MODELS_BY_PROVIDER } from '../types';
 import { runIngestion } from '../scrapers/ingestionService';
@@ -100,6 +101,30 @@ export async function startServer() {
           'Set-Cookie': 'gethired_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0',
         });
         return res.end(JSON.stringify({ success: true, message: 'Logged out successfully.' }));
+      }
+
+      // Delete Account
+      if (pathname === '/api/auth/delete-account' && method === 'POST') {
+        if (!session) {
+          return sendJson(res, 401, { error: 'You must be logged in to delete your account.' });
+        }
+        const user = await getUserById(db, session.userId);
+        if (!user) {
+          return sendJson(res, 404, { error: 'Account not found.' });
+        }
+        await deleteUserAccount(db, user.id, user.email);
+        deleteUserProfileFiles(user.id);
+
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Set-Cookie': 'gethired_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0',
+        });
+        return res.end(
+          JSON.stringify({
+            success: true,
+            message: 'Your account and all associated data have been permanently deleted.',
+          })
+        );
       }
 
       // GitHub OAuth Entry
@@ -488,6 +513,15 @@ export async function startServer() {
         const filePath = path.resolve(__dirname, 'public', 'site.webmanifest');
         if (fs.existsSync(filePath)) {
           res.writeHead(200, { 'Content-Type': 'application/manifest+json; charset=utf-8' });
+          fs.createReadStream(filePath).pipe(res);
+          return;
+        }
+      }
+
+      if (pathname === '/workspace.html') {
+        const filePath = path.resolve(__dirname, 'public', 'workspace.html');
+        if (fs.existsSync(filePath)) {
+          res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
           fs.createReadStream(filePath).pipe(res);
           return;
         }

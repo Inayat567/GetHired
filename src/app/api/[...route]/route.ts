@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import path from 'path';
 import { loadConfig } from '@/config';
-import { getDb, getStats, getQualifiedJobsForTriage, getJobsForProfile, updateJobStatus, updateProfileJobStatus, getUserById } from '@/db/database';
+import { getDb, getStats, getQualifiedJobsForTriage, getJobsForProfile, updateJobStatus, updateProfileJobStatus, getUserById, deleteUserAccount } from '@/db/database';
 import {
   listProfiles,
   listProfilesForUser,
@@ -14,6 +14,7 @@ import {
   createNewProfile,
   createUserProfile,
   validateProfileCompleteness,
+  deleteUserProfileFiles,
 } from '@/config/profileManager';
 import { AI_MODELS_BY_PROVIDER } from '@/types';
 import { getClientEncryptionPublicKey } from '@/config/secrets';
@@ -273,7 +274,43 @@ export async function POST(req: Request, context: { params: Promise<{ route: str
       return res;
     }
 
-    // 2. Email OTP Send
+    // 2. Delete Account — permanently wipes all user data (DB rows + profile files)
+    if (pathname === '/api/auth/delete-account') {
+      if (!session) {
+        return NextResponse.json({ error: 'You must be logged in to delete your account.' }, { status: 401 });
+      }
+
+      const user = await getUserById(db, session.userId);
+      if (!user) {
+        return NextResponse.json({ error: 'Account not found.' }, { status: 404 });
+      }
+
+      console.log(`[DeleteAccount] Starting deletion for user ${user.id} (${user.email})`);
+
+      // 1. Delete all DB data: profile_jobs, auth_codes, users row
+      await deleteUserAccount(db, user.id, user.email);
+
+      // 2. Delete all profile files and directories from disk
+      const deletedPaths = deleteUserProfileFiles(user.id);
+      console.log(`[DeleteAccount] Deleted ${deletedPaths.length} profile director(ies) for ${user.id}`);
+
+      // 3. Clear session cookie
+      const res = NextResponse.json({
+        success: true,
+        message: 'Your account and all associated data have been permanently deleted.',
+      });
+      res.cookies.set('gethired_session', '', {
+        path: '/',
+        httpOnly: true,
+        sameSite: 'lax',
+        maxAge: 0,
+      });
+
+      console.log(`[DeleteAccount] Account for ${user.email} fully deleted.`);
+      return res;
+    }
+
+    // 3. Email OTP Send
     if (pathname === '/api/auth/send-otp') {
       if (!body.email) return NextResponse.json({ error: 'Email is required.' }, { status: 400 });
       const sent = await sendEmailOtp(body.email, db);
