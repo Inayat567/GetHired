@@ -273,7 +273,13 @@ export async function POST(req: Request, context: { params: Promise<{ route: str
     // 2. Email OTP Send
     if (pathname === '/api/auth/send-otp') {
       if (!body.email) return NextResponse.json({ error: 'Email is required.' }, { status: 400 });
-      await sendEmailOtp(body.email, db);
+      const sent = await sendEmailOtp(body.email, db);
+      if (!sent) {
+        return NextResponse.json(
+          { error: 'Failed to send verification code. Please check server configuration (RESEND_API_KEY).' },
+          { status: 500 }
+        );
+      }
       return NextResponse.json({ success: true, message: 'Verification code sent to your email.' });
     }
 

@@ -190,7 +190,12 @@ export async function startServer() {
       if (pathname === '/api/auth/send-otp' && method === 'POST') {
         const body = await parseBody(req);
         if (!body.email) return sendJson(res, 400, { error: 'Email is required.' });
-        await sendEmailOtp(body.email, db);
+        const sent = await sendEmailOtp(body.email, db);
+        if (!sent) {
+          return sendJson(res, 500, {
+            error: 'Failed to send verification code. Please check server configuration (RESEND_API_KEY).',
+          });
+        }
         return sendJson(res, 200, { success: true, message: 'Verification code sent to your email.' });
       }
 

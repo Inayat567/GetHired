@@ -74,11 +74,18 @@ function httpsRequest(options: https.RequestOptions, body?: string): Promise<any
       let data = '';
       res.on('data', (chunk) => (data += chunk));
       res.on('end', () => {
+        let parsed: any;
         try {
-          resolve(data ? JSON.parse(data) : {});
+          parsed = data ? JSON.parse(data) : {};
         } catch {
-          resolve(data);
+          parsed = data;
         }
+        if (res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {
+          return reject(
+            new Error(`HTTP ${res.statusCode}: ${typeof parsed === 'object' ? JSON.stringify(parsed) : parsed}`)
+          );
+        }
+        resolve(parsed);
       });
     });
     req.on('error', reject);
@@ -240,29 +247,33 @@ export async function handleGoogleCallback(code: string, redirectUri: string, db
   })) as UserAccount;
 }
 
-// 3. Resend / Free Email OTP Dispatcher
+// 3. Resend Email OTP Dispatcher
 export async function sendEmailOtp(email: string, db: Database): Promise<boolean> {
   const cleanEmail = email.trim().toLowerCase();
   const code = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digits
 
   await saveAuthCode(db, cleanEmail, code, 600); // 10 minutes TTL
 
+  const htmlBody = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 28px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+      <h2 style="color: #1e1b4b; margin-top: 0;">Sign in to GetHired</h2>
+      <p style="color: #475569; font-size: 14px; line-height: 22px;">Use the 6-digit verification code below to securely access your personal job copilot, preferences, and outreach pitches:</p>
+      <div style="margin: 24px 0; text-align: center;">
+        <span style="font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #4f46e5; background-color: #eef2ff; padding: 12px 24px; border-radius: 12px; display: inline-block;">${code}</span>
+      </div>
+      <p style="color: #94a3b8; font-size: 12px;">This code expires in 10 minutes. If you did not request this login, please ignore this email.</p>
+    </div>
+  `;
+
+  // Dispatch via Resend API if API key is present
   const resendApiKey = process.env.RESEND_API_KEY;
   if (resendApiKey) {
+    const fromAddress = process.env.RESEND_FROM || 'GetHired <auth@innunext.com>';
     const emailPayload = JSON.stringify({
-      from: 'GetHired <auth@innunext.com>',
+      from: fromAddress,
       to: [cleanEmail],
       subject: `Your GetHired Login Code: ${code}`,
-      html: `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 28px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
-          <h2 style="color: #1e1b4b; margin-top: 0;">Sign in to GetHired</h2>
-          <p style="color: #475569; font-size: 14px; line-height: 22px;">Use the 6-digit verification code below to securely access your personal job copilot, preferences, and outreach pitches:</p>
-          <div style="margin: 24px 0; text-align: center;">
-            <span style="font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #4f46e5; background-color: #eef2ff; padding: 12px 24px; border-radius: 12px; display: inline-block;">${code}</span>
-          </div>
-          <p style="color: #94a3b8; font-size: 12px;">This code expires in 10 minutes. If you did not request this login, please ignore this email.</p>
-        </div>
-      `,
+      html: htmlBody,
     });
 
     try {
@@ -278,15 +289,24 @@ export async function sendEmailOtp(email: string, db: Database): Promise<boolean
         },
         emailPayload
       );
+      console.log(`[sendEmailOtp] OTP email dispatched via Resend to ${cleanEmail}`);
       return true;
     } catch (err) {
       console.error('[Resend Error]', err);
+      return false;
     }
   }
 
-  // Fallback: log code in server terminal
-  console.log(`\n🔑 [Local/Console OTP Code] For ${cleanEmail} -> ${code}\n`);
-  return true;
+  // Fallback for local development when RESEND_API_KEY is not configured
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`\n🔑 [Local/Console OTP Code] For ${cleanEmail} -> ${code}\n`);
+    return true;
+  }
+
+  console.error(
+    `[sendEmailOtp] Failed to deliver OTP to ${cleanEmail}: RESEND_API_KEY is not configured in production.`
+  );
+  return false;
 }
 
 export async function verifyEmailOtp(email: string, code: string, db: Database): Promise<UserAccount | null> {
